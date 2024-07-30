@@ -5,7 +5,8 @@ SensorHub Repository.
 # DataSources
 
 - DWD
-- PEgelONline
+- [PegelOnline](https://www.pegelonline.wsv.de/gast/start)
+- [NLWKN Groundwater](https://www.grundwasserstandonline.nlwkn.niedersachsen.de/Start)
 
 # Sources
 
