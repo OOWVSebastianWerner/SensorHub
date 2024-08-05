@@ -18,6 +18,8 @@ first step by setting up an infrastructure that does this automaticly.
 A key element in this project is The FROST Server which is an open source implementation 
 of the OGC SensorThings API.
 
+![general schema](SensorHub.drawio.png)
+
 The sensor data from the different sources has to be prepared to fit into the 
 scheme of the OGC SensorThings API. For collecting and preparing the data may an
 data ochastrator (like dagster) be used.
@@ -36,10 +38,11 @@ List of available DataSources and their description.
 - [PegelOnline](https://www.pegelonline.wsv.de/gast/start)
 - [NLWKN Groundwater](https://www.grundwasserstandonline.nlwkn.niedersachsen.de/Start)
 - DWD (Deutscher Wetterdienst)
+- [OpenWeatherMap](https://openweathermap.org/)
 
 ## Step 2: Data Storage
 
-which kind of databases is needed
+which kind of databases are needed
 
 - nosql for master data e.g. informations about a station or a sensor like position, name, etc.
 
