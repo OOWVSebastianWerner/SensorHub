@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------
 # Name:         WSA get stations
 # Purpose:      Loads stations and measurements from PEGELONLINE and saves the 
-#               data as json
+#               stations as csv and measurement data as json
 #
 #
 # author:       Sebastian Werner
