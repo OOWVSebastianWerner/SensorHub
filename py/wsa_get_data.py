@@ -73,4 +73,4 @@ def get_wsa_measurements(df, limit = None):
 
 if __name__ == 'main':
     df_stations = get_wsa_stations()
-    get_wsa_measurements(df_stations)
+    get_wsa_measurements(df_stations, limit={'col':'water_longname', 'value':'HUNTE'})
