@@ -31,10 +31,18 @@ baseUrl = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/'
 # get json data from endpoint
 def get_data_as_json(url):
     
-    res = requests.get(url, stream=True)
-    res.raise_for_status()
+    try:
+        res = requests.get(url, stream=True)
+        res.raise_for_status()
 
-    return res.json()
+        return res.json()
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")  
+    except Exception as err:
+        print(f"Other error occurred: {err}")
+
+    
 
 # Get stations
 #%%
