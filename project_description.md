@@ -2,7 +2,7 @@
 
 General description and aim of project.
 
-## Context and Scope
+## Step 1: Context and Scope
 
 **Define context and scope of the project.**
 
@@ -23,7 +23,7 @@ of the OGC SensorThings API.
 The sensor data from the different sources has to be prepared to fit into the 
 scheme of the OGC SensorThings API. For collecting and preparing the data may an
 data ochastrator (like dagster) be used.
-The collected sensor data than can be consumed over one API for the use in a dashboard 
+The collected sensor data than can be consumed over one API for the use in a dashboard, 
 further analysis with python or R or in a model.
 The system should be able to handle historic and real-time data.
 
@@ -31,7 +31,7 @@ It will be designed to work with different data sources and expandability in min
 The advantage of the system will be that it provides a single point for sensor data.
 The aim is to connect different sources and systems rather than replacing them.
 
-## Data sources
+## Step 1: Data sources
 
 List of available DataSources and their description.
 
