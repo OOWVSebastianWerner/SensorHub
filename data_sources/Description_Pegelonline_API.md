@@ -8,7 +8,7 @@ licence: [DL-DW->ZERO-2.0](https://www.govdata.de/dl-de/zero-2-0)
 
 List of available Stations.
 
-URL: https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json
+URL: <https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json>
 
 fields:
 

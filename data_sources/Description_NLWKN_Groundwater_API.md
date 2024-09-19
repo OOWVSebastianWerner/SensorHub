@@ -8,17 +8,17 @@ licence: [dl-de/by-2-0](https://www.govdata.de/dl-de/by-2-0)
 
 Lists all available stations:
 
-> https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key=9dc05f4e3b4a43a9988d747825b39f43
+> <https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key=9dc05f4e3b4a43a9988d747825b39f43>
 
 Lists a selected station (station-id):
 
-> https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/%7BstationIds%7D?key=9dc05f4e3b4a4
+> <https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/%7BstationIds%7D?key=9dc05f4e3b4a4>
 
 ## Measurements
 
 All measurements for one station:
 
-> https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{STA_ID}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key=9dc05f4e3b4a43a9988d747825b39f43
+> <https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{STA_ID}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key=9dc05f4e3b4a43a9988d747825b39f43>
 
 ### Parameters
 
