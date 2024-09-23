@@ -79,13 +79,6 @@ Information for the different sensors and stations can be various, because there
 be different kind of sensors. The data is unstructured and therefore will be stored
 in a nosql database.
 
-which kind of databases are needed
-
-- nosql for master data e.g. informations about a station or a sensor like position, name, etc.
-
-- timescaledb for timeseries-data (measurements)
-
-- duckDB as part of Dagster.io (data orhcestrator) to automate the flow.
 
 ## Step 3: Data consumption
 
