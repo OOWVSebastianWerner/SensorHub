@@ -6,7 +6,9 @@ setup(
     install_requires=[
         "dagster",
         "dagster-cloud",
-        "pandas"
+        "dagster-duckdb",
+        "pandas",
+        "plotly"
     ],
     extras_require={"dev": ["dagster-webserver", "pytest"]},
 )
