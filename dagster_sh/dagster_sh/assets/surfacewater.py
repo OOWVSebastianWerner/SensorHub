@@ -3,9 +3,10 @@ from dagster import asset, AssetExecutionContext, ConfigurableResource
 from dagster_duckdb import DuckDBResource
 from ..ressources import WSA_API
 from . import constants
+import pandas as pd
 
 @asset(
-        group_name='raw_file'
+        group_name='surfacewater'
 )
 def surfacewater_stations_file(wsa_api: WSA_API) -> None:
     """
@@ -21,7 +22,7 @@ def surfacewater_stations_file(wsa_api: WSA_API) -> None:
 
 @asset(
     deps=[surfacewater_stations_file],
-    group_name="ingested"
+    group_name='surfacewater'
 )
 def surfacewater_stations(database: DuckDBResource) -> None:
     """
@@ -47,8 +48,29 @@ def surfacewater_stations(database: DuckDBResource) -> None:
     with database.get_connection() as conn:
         conn.execute(sql_query)
 
-@asset()
-def station_ids() -> None:
+@asset(
+        deps=[surfacewater_stations],
+        group_name='surfacewater')
+def surfacewater_station_ids(database: DuckDBResource) -> pd.DataFrame:
     """
+     Get List of Station Ids
     """
+    sql_query = 'SELECT station_id from surfacewater_stations;'
+
+    with database.get_connection() as conn:
+       df_surfacewater_station_ids = conn.execute(sql_query).fetch_df()
     
+    ls_uuids = df_surfacewater_station_ids.station_id.to_list()
+
+    # for uuid in ls_uuids:
+    #     url_measurements = f'{baseUrl}stations/{uuid}/W/measurements.json'
+    #     r = s.get(url_measurements)
+
+    #     if r.status_code == 200:
+    #         data = r.json()
+
+    #         df = pd.DataFrame(data)
+    #         df['stationId'] = uuid
+
+    #         df.to_csv(levelsPath / f'{uuid}.csv', sep=';')
+                

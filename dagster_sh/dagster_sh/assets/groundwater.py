@@ -4,7 +4,7 @@ from ..ressources import NLWKN_API
 from . import constants 
 
 @asset(
-        group_name="raw_file"
+        group_name="groundwater"
 )
 def groundwater_levels_file(nlwkn_api: NLWKN_API) -> None:
     """
@@ -20,7 +20,7 @@ def groundwater_levels_file(nlwkn_api: NLWKN_API) -> None:
 
 @asset(
         deps=[groundwater_levels_file],
-        group_name='ingested')
+        group_name='groundwater')
 def groundwater_stations() -> None:
     """
         Extract stations from groundwater-levels-file.

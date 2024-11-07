@@ -17,12 +17,11 @@ class WSA_API(ConfigurableResource):
                 'content-type': 'application/json; charset=UTF-8'})
 
 class NLWKN_API(ConfigurableResource):
-
     def request( self, endpoint: str) -> Response:
         return requests.get(
             f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/{endpoint}',
             params={
-                'key': '9dc05f4e3b4a43a9988d747825b39f43' #EnvVar("NLWKN_API_KEY")
+                'key': EnvVar("NLWKN_API_KEY").get_value()
             }
         )
     

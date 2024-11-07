@@ -6,7 +6,7 @@ from ..ressources import FROST_API
 from . import constants
 
 @asset(
-        group_name='raw_file'
+        group_name='FROST'
 )
 def frost_server_things(frost_api: FROST_API) -> None:
     """
@@ -21,7 +21,7 @@ def frost_server_things(frost_api: FROST_API) -> None:
 
 @asset(
     deps=[frost_server_things],
-    group_name='ingested'
+    group_name='FROST'
     )
 def things_ids() -> None:
     """
