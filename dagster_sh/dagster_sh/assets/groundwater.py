@@ -1,26 +1,20 @@
 import requests
 from dagster import asset
-from ..ressources import NLWKN_API
-from . import constants 
+from .. import constants
 
-@asset(
-        group_name="groundwater"
-)
-def groundwater_levels_file(nlwkn_api: NLWKN_API) -> None:
+@asset
+def groundwater_levels_file() -> None:
     """
         Load groundwater levels from the NLWKN-API.
     """
    
-    raw_gw_levels = nlwkn_api.request(constants.NLWKN_API_GW_STATIONS)
-    #requests.get(f'{constants.NLWKN_API}?key={constants.NLWKN_API_KEY}')
+    raw_gw_levels = requests.get(f'{constants.NLWKN_API}?key={constants.NLWKN_API_KEY}')
 
     with open(constants.raw_gw_levels_FILE_PATH, 'wb') as output_file:
         output_file.write(raw_gw_levels.content)
 
 
-@asset(
-        deps=[groundwater_levels_file],
-        group_name='groundwater')
+@asset(deps=[groundwater_levels_file])
 def groundwater_stations() -> None:
     """
         Extract stations from groundwater-levels-file.

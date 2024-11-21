@@ -2206,32 +2206,6 @@
     }
   },
   {
-    "uuid": "df06a523-8012-41cd-bd3c-47979d66e45e",
-    "number": "26358",
-    "shortname": "Herbrum Oberwasser",
-    "longname": "HERBRUM OBERWASSER",
-    "agency": "STANDORT EMDEN",
-    "longitude": 7.314882760986881,
-    "latitude": 53.031126987610925,
-    "water": {
-      "shortname": "EMS",
-      "longname": "EMS"
-    }
-  },
-  {
-    "uuid": "5d0f9471-f1cb-4b53-9996-067d68d2ce2a",
-    "number": "26775",
-    "shortname": "Herbrum Unterwasser",
-    "longname": "HERBRUM UNTERWASSER",
-    "agency": "STANDORT EMDEN",
-    "longitude": 7.313517294409754,
-    "latitude": 53.03286976077966,
-    "water": {
-      "shortname": "EMS",
-      "longname": "EMS"
-    }
-  },
-  {
     "uuid": "86f8dbab-6a64-408b-a5d5-69e69f01db2f",
     "number": "3730001",
     "shortname": "VERSEN WEHR OP",
