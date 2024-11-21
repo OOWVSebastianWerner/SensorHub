@@ -21,6 +21,10 @@ basePath = Path(r'..\data\wsa')
 
 input_File = Path(basePath / 'pegel_stations.json')
 
+#------------------------------------------------------------------------------
+#--- main
+#------------------------------------------------------------------------------
+
 df = pd.read_json(input_File)
 # %%
 
@@ -51,7 +55,7 @@ for i in df.index:
         ],
         'Datastreams': [
             {
-                'name': "",
+                'name': f"water levels station {df.loc[i].shortname}",
                 'description': "",
                 'observationType': "",
                 "unitOfMeasurement": {
