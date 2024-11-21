@@ -20,10 +20,10 @@ def sensor(sensor_id=None):
 
     return requests.get(url)
 
-def observedProperties(oP_id=None):
+def observedProperty(oP_id=None):
     if oP_id:
-        url = f'{baseURL}{endpoints['observedProperties']}({oP_id})'
+        url = f'{baseURL}{endpoints['observedProperty']}({oP_id})'
     else:
-        url = f'{baseURL}{endpoints['observedProperties']}'
+        url = f'{baseURL}{endpoints['observedProperty']}'
     
     return requests.get(url)
