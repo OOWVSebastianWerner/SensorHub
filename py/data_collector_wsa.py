@@ -19,7 +19,7 @@ import os
 #------------------------------------------------------------------------------
 #%%
 
-basePath = Path(r'..\data\wsa')
+basePath = Path(r'D:\Git\WQWI_Py\data')
 
 levelsPath = Path(basePath / 'levels')
 if not levelsPath.exists():
