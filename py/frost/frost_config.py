@@ -8,5 +8,5 @@ serverURL = '/FROST-Server/v1.1/'
 endpoints = {
     'things': f'{serverURL}Things',
     'sensors': f'{serverURL}Sensors',
-    'observedProperties': f'{serverURL}ObservedProperties'
+    'observedProperty': f'{serverURL}ObservedProperty'
 }
