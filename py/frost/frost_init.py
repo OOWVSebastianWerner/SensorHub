@@ -4,7 +4,7 @@
 #%%
 import requests
 import json
-from frost_config import baseURL, endpoints
+from .frost_config import baseURL, endpoints
 
 Sensors = [
     {
