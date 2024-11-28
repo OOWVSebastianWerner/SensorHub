@@ -2,7 +2,7 @@
 # Functions to get data from FROST-Server
 # ------------------------------------------------------------------------------
 import requests
-from .frost_config import baseURL, endpoints
+from frost_config import baseURL, endpoints
 
 def thing(thing_id=None):
     if thing_id:
