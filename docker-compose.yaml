@@ -22,6 +22,8 @@ services:
 
   database:
     image: postgis/postgis:14-3.2-alpine
+    ports:
+      - 5432:5432
     environment:
       - POSTGRES_DB=sensorthings
       - POSTGRES_USER=sensorthings
