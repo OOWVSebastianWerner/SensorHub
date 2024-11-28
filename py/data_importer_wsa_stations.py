@@ -11,12 +11,12 @@ import requests
 import pandas as pd
 from pathlib import Path
 import json
-
+from frost import frost_config
 #------------------------------------------------------------------------------
 #--- global vars
 #------------------------------------------------------------------------------
 #%%
-server = r'http://localhost:8080/FROST-Server/v1.1/'
+#server = r'http://localhost:8080/FROST-Server/v1.1/'
 basePath = Path(r'..\data\wsa')
 
 input_File = Path(basePath / 'pegel_stations.json')
@@ -64,17 +64,13 @@ for i in df.index:
                     'definition': 'na'
                 },
                 'Sensor': {"@iot.id": 1},
-                'ObservedProperty': {
-                    'name': 'water level',
-                    'description': 'water level',
-                    'definition': ''
-                }
+                'ObservedProperty': {"@iot.id": 3}
             }
         ]
     }
     json_obj = json.dumps(station_dict, indent=4, default=str)
     
-    r = requests.post(server + 'Things', json_obj)
+    r = requests.post(f'{frost_config.baseURL}{frost_config.endpoints['things']}', json_obj)
 
     print(r.text)
 # %%
