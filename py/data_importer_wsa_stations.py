@@ -33,7 +33,7 @@ for i in df.index:
         'name': df.loc[i].shortname,
         'description': "",
         'properties': {
-            'station type': "water station",
+            'station_type': "water station",
             'uuid': df.loc[i].uuid,
             'longname': df.loc[i].longname,
             'number': df.loc[i].number,
