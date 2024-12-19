@@ -8,6 +8,7 @@
 #------------------------------------------------------------------------------
 #%%
 import requests
+import os
 import pandas as pd
 from pathlib import Path
 import json
@@ -38,14 +39,15 @@ for i in df.index:
             'longname': df.loc[i].longname,
             'number': df.loc[i].number,
             'km': df.loc[i].km,
-            'water_shortname': df.loc[i].water_shortname,
-            'water_longname': df.loc[i].water_longname,
+            # 'water_shortname': df.loc[i].water_shortname,
+            # 'water_longname': df.loc[i].water_longname,
+            'water': df.loc[i].water,
             'agency': df.loc[i].agency
         },
         'Locations': [
             {
-            'name': df.loc[i].shortname, 
-            'description': "",
+            'name': df.loc[i].longname, 
+            'description': f"{df.loc[i].water['longname']} at km {df.loc[i].km}",
             'encodingType': "application/geo+json", 
             'location': { 
                 'type': 'Point', 
@@ -59,8 +61,8 @@ for i in df.index:
                 'description': "",
                 'observationType': "",
                 "unitOfMeasurement": {
-                    'name': 'centimeter NHN',
-                    'symbol': 'cm NHN',
+                    'name': 'centimeter',
+                    'symbol': 'cm',
                     'definition': 'na'
                 },
                 'Sensor': {"@iot.id": 1},
@@ -69,7 +71,7 @@ for i in df.index:
         ]
     }
     json_obj = json.dumps(station_dict, indent=4, default=str)
-    
+# %%    
     r = requests.post(f'{frost_config.baseURL}{frost_config.endpoints['things']}', json_obj)
 
     print(r.text)
