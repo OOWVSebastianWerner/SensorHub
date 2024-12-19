@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# Name:         post measurements to FROST-Server
+# Name:         service post wsa measurements to FROST-Server
 #
 # author:       Sebastian Werner
 # email:        s.werner@oowv.de
@@ -8,11 +8,9 @@
 #%%
 import requests
 from pathlib import Path
-import json
 import pandas as pd
-from frost import frost_config
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from frost import frost_config
 
 #------------------------------------------------------------------------------
 #--- global vars
@@ -30,19 +28,20 @@ qry_things = (
     "&$expand=Datastreams($select=@iot.id,@iot.selfLink)"
 )
 
-# POST-function for parallel processing
+# POST-function
 def post_observations(session, datastream, data):
     responses = []
     for _, row in data.iterrows():
         row_dict = row.to_dict()
         response = session.post(f'{datastream}/Observations', json=row_dict)
-        responses.append((response.status_code, response.text))
+    responses.append((response.status_code, response.text))
     return responses
 
 #------------------------------------------------------------------------------
 #--- main
 #------------------------------------------------------------------------------
 #%%
+
 with requests.Session() as session:
     # Set global header
     session.headers.update({'Content-Type': 'application/json; charset=UTF-8'})
@@ -58,14 +57,11 @@ with requests.Session() as session:
         datastream_res = session.get(f'{datastream}').json()
         # get last phenomenonTime in Datastream
         if 'phenomenonTime' in datastream_res.keys():
-            # lastEntryTime = datetime.fromisoformat(
-            #     datastream_res['phenomenonTime'].split('/')[1]
-            # )
             lastEntryTime = datastream_res['phenomenonTime'].split('/')[1]
         else:
             lastEntryTime = None
 
-        print(f"Processing Thing ID: {id_}, StartTime: {lastEntryTime}, Datastream: {datastream}")
+        print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
         # # !!! FOR DEV ONLY !!!
         # if uuid == '47174d8f-1b8e-4599-8a59-b580dd55bc87':
             # get measurements
@@ -74,22 +70,12 @@ with requests.Session() as session:
             # create DataFrame
             df = pd.DataFrame(response.json())
             df.rename(columns={'timestamp': 'phenomenonTime', 'value': 'result'}, inplace=True)
-            #df['phenomenonTime'] = pd.to_datetime(df['phenomenonTime'])
 
             if lastEntryTime:
-                df_to_post = df[df['phenomenonTime'] > lastEntryTime]
+                df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
             else:
-                df_to_post = df
+                df_to_post = df[-5:]
             
-            # Parallelisierung für POST-Anfragen
-            with ThreadPoolExecutor() as executor:
-                results = executor.submit(post_observations, session, datastream, df_to_post)
-            
-            # Ergebnisse prüfen
-            for status_code, message in results.result():
-                if status_code == 200 or status_code == 201:
-                    print(f"Observation posted successfully: {message}")
-                else:
-                    print(f"Error posting observation: {status_code}, {message}")
+            post_observations(session, datastream, df_to_post)
 
 # %%
