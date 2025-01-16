@@ -22,7 +22,7 @@ import time
 #------------------------------------------------------------------------------
 #%%
 
-basePath = Path(r'data\nlwkn')
+basePath = Path(r'..\data\nlwkn')
 # Public API Key
 api_key = '9dc05f4e3b4a43a9988d747825b39f43'
 
@@ -40,45 +40,47 @@ try:
 
         if response.status_code == 200:
             json_data = response.json()
+            with open(basePath / 'nlwkn_data.json', 'w') as output_file:
+                output_file.write(json.dumps(response.json(), indent=4))
             
-            data = []
+        #     data = []
 
-            for station in json_data['getStammdatenResult']:
-                # extract station-id
-                sta_id = station.get('STA_ID')
-                # extract station name
-                sta_name = station.get('Name')
-                # extract current measurement
-                curr_gw_value = station.get('GWAktuellerMesswert')
-                # extract current measurement in NNM
-                curr_gw_value_nnm = station.get('GWAktuellerMesswertNNM')
-                curr_gw_class = station.get('AktuellGrundwasserstandsklasse')
+        #     for station in json_data['getStammdatenResult']:
+        #         # extract station-id
+        #         sta_id = station.get('STA_ID')
+        #         # extract station name
+        #         sta_name = station.get('Name')
+        #         # extract current measurement
+        #         curr_gw_value = station.get('GWAktuellerMesswert')
+        #         # extract current measurement in NNM
+        #         curr_gw_value_nnm = station.get('GWAktuellerMesswertNNM')
+        #         curr_gw_class = station.get('AktuellGrundwasserstandsklasse')
                 
-                # extract date and convert to timestamp
-                for parameter in station['Parameter']:
-                    for datenspur in parameter['Datenspuren']:
-                        if datenspur['AktuellerPegelstand']:
-                            timestamp = datetime.fromtimestamp(
-                                int(re.search(r'\d+', datenspur['AktuellerPegelstand']['Datum']).group()) / 1000 )
-                        else:
-                            timestamp = None
+        #         # extract date and convert to timestamp
+        #         for parameter in station['Parameter']:
+        #             for datenspur in parameter['Datenspuren']:
+        #                 if datenspur['AktuellerPegelstand']:
+        #                     timestamp = datetime.fromtimestamp(
+        #                         int(re.search(r'\d+', datenspur['AktuellerPegelstand']['Datum']).group()) / 1000 )
+        #                 else:
+        #                     timestamp = None
 
-                data.append(
-                    {
-                        'timestamp': timestamp,
-                        'STA_ID': sta_id,
-                        'STA_Name': sta_name, 
-                        'curr_gw_value': curr_gw_value,
-                        'curr_gw_value_NNM': curr_gw_value_nnm,
-                        'curr_gw_class': curr_gw_class
-                    }
-                )
+        #         data.append(
+        #             {
+        #                 'timestamp': timestamp,
+        #                 'STA_ID': sta_id,
+        #                 'STA_Name': sta_name, 
+        #                 'curr_gw_value': curr_gw_value,
+        #                 'curr_gw_value_NNM': curr_gw_value_nnm,
+        #                 'curr_gw_class': curr_gw_class
+        #             }
+        #         )
         
-        df = pd.DataFrame(data)
+        # df = pd.DataFrame(data)
 
-        df = df.replace(-888, np.nan)
+        # df = df.replace(-888, np.nan)
 
-        df.to_csv(basePath / 'nlwkn_data.csv', sep=';', decimal=',')
+        # df.to_csv(basePath / 'nlwkn_data.csv', sep=';', decimal=',')
 
 except requests.exceptions.HTTPError as http_err:
     print(f'HTTP error occurred: {http_err}')
