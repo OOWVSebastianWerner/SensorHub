@@ -38,11 +38,15 @@ for station in data['getStammdatenResult']: #for i in df.index:
         'properties': {
             'station type': "groundwater_station",
             'id': station.get('STA_ID'),
-            'betreiber': station.get('Betreiber')
+            'betreiber': station.get('Betreiber'),
+            'FOK_mNHN': station.get('MS_FOK_mNHN'),
+            'FUK_mNHN': station.get('MS_FUK_mNHN'),
+            'GOK_mNHN': station.get('MS_GOK_mNHN'),
+            'MBP_mNHN': station.get('MS_MBP_mNHN')
         },
         'Locations': [
             {
-            'name': station.get('Name'), 
+            'name': station.get('Ort'), 
             'description': "",
             'encodingType': "application/geo+json", 
             'location': { 
@@ -70,5 +74,5 @@ for station in data['getStammdatenResult']: #for i in df.index:
     
     r = requests.post(f'{frost_config.baseURL}{frost_config.endpoints['things']}', json_obj)
 
-    print(r.text)
+    print(r.status_code)
 # %%
