@@ -92,7 +92,7 @@ with requests.Session() as session:
             
             df = pd.DataFrame(meas)
 
-            df['DatumUTC'] = datetime.fromtimestamp(int(df['DatumUTC'][0].split('/Date(')[-1][0:-2])/1000, tz=utc)
+            df['DatumUTC'] = df['DatumUTC'].apply(lambda x: datetime.fromtimestamp(int(x.split('/Date(')[-1][0:-2])/1000, tz=utc))
             df.rename(columns={'DatumUTC': 'phenomenonTime', 'Wert': 'result'}, inplace=True)
             df = df.drop(['Datum', 'Grundwasserstandsklasse'], axis=1)
             df['phenomenonTime'] = df['phenomenonTime'].apply(lambda x: x.isoformat())
