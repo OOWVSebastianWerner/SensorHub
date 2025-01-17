@@ -10,6 +10,7 @@ import requests
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from frost import frost_config
 
 #------------------------------------------------------------------------------
@@ -24,11 +25,12 @@ baseUrl_nlwkn = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/st
 
 PAT_ID = 536
 tage = -7
+utc = ZoneInfo('UTC')
 
 qry_things = (
     f"{frost_config.baseURL}{frost_config.endpoints['things']}"
     "?$filter=properties/station_type eq 'groundwater_station'"
-    "&$select=@iot.id,properties/foreign_id"
+    "&$select=@iot.id,properties/foreign_id,properties/MBP_mNHN"
     "&$expand=Datastreams($select=@iot.id,@iot.selfLink)"
 )
 
@@ -63,6 +65,7 @@ with requests.Session() as session:
     for thing in things['value']:
         id_ = thing['@iot.id']
         foreign_id = thing['properties']['foreign_id']
+        mbp = thing['properties']['MBP_mNHN']
         datastream = thing['Datastreams'][0]['@iot.selfLink']
 
         # get last phenomenonTime in Datastream
@@ -74,22 +77,29 @@ with requests.Session() as session:
 
         print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
         # # !!! FOR DEV ONLY !!!
-        if foreign_id == '14828010':
+        # if foreign_id == 14828010:
 
-            url = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{foreign_id}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key={api_key}' 
+        url = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{foreign_id}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key={api_key}' 
+        
+        measurements_res = session.get(url)
+        if measurements_res.status_code == 200:
+            # create DataFrame
+            meas = measurements_res.json()\
+                .get('getPegelDatenspurenResult')\
+                    .get('Parameter')[0]\
+                        .get('Datenspuren')[0]\
+                            .get('Pegelstaende')
             
-            measurements_res = session.get(url)
-            if measurements_res.status_code == 200:
-                # create DataFrame
-                df = pd.DataFrame(measurements_res.json())
-                #df['getPegelDatenspurenResult']['Parameter'][0]['Datenspuren'][0]['Pegelstaende']
-                # df.rename(columns={'timestamp': 'phenomenonTime', 'value': 'result'}, inplace=True)
+            df = pd.DataFrame(meas)
 
-                # if lastEntryTime:
-                #     df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
-                # else:
-                #     df_to_post = df[-5:]
-                
-                # post_observations(session, datastream, df_to_post)
-            else:
-                print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
+            df['DatumUTC'] = datetime.fromtimestamp(int(df['DatumUTC'][0].split('/Date(')[-1][0:-2])/1000, tz=utc)
+            df.rename(columns={'DatumUTC': 'phenomenonTime', 'Wert': 'result'}, inplace=True)
+            df = df.drop(['Datum', 'Grundwasserstandsklasse'], axis=1)
+            df['phenomenonTime'] = df['phenomenonTime'].apply(lambda x: x.isoformat())
+            df['result'] = df['result'].apply(lambda x: mbp - x)
+            res = post_observations(session, datastream, df)
+            # for i in res:
+            #     print(i[0], i[1])
+        else:
+            print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
+# %%
