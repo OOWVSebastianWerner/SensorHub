@@ -25,7 +25,6 @@ input_File = Path(basePath / 'nlwkn_data.json')
 #--- main
 #------------------------------------------------------------------------------
 
-df = pd.read_json(input_File)
 with open(input_File, 'r') as f:
     data = json.load(f)
 
@@ -36,8 +35,8 @@ for station in data['getStammdatenResult']: #for i in df.index:
         'name': station.get('Name'), #df.loc[i].shortname,
         'description': "",
         'properties': {
-            'station type': "groundwater_station",
-            'id': station.get('STA_ID'),
+            'station_type': "groundwater_station",
+            'foreign_id': station.get('STA_ID'),
             'betreiber': station.get('Betreiber'),
             'FOK_mNHN': station.get('MS_FOK_mNHN'),
             'FUK_mNHN': station.get('MS_FUK_mNHN'),
