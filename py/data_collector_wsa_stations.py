@@ -20,10 +20,6 @@ import os
 
 basePath = Path(r'..\data\wsa')
 
-levelsPath = Path(basePath / 'levels')
-if not levelsPath.exists():
-    os.mkdir(levelsPath)
-
 baseUrl = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/'
 url = f'{baseUrl}stations.json'
 
@@ -40,18 +36,6 @@ try:
         if response.status_code == 200:
             with open(basePath / 'pegel_stations.json', 'w') as f:
                 f.write(json.dumps(response.json(), indent=4))
-            
-            # data = response.json()
-
-            # df_stations = pd.DataFrame(data)
-            # # split column water into two columns
-            # df_waters = pd.DataFrame(df_stations.water.to_list())
-            # df_waters.rename(columns={'shortname': 'water_shortname', 'longname': 'water_longname'}, inplace=True)
-            # df_stations = pd.concat([df_stations, df_waters], axis=1)
-            # df_stations.drop(['water'], axis=1, inplace=True)
-
-            # # Export df to csv
-            # df_stations.to_json(basePath / 'pegel_stations.json', orient='records', indent=4)
 
 except requests.exceptions.HTTPError as http_err:
     print(f'HTTP error occurred: {http_err}')

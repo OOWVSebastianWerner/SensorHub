@@ -10,7 +10,7 @@ import requests
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
-from frost import frost_config
+from frost import config
 
 #------------------------------------------------------------------------------
 #--- global vars
@@ -23,7 +23,7 @@ levelsPath = Path(basePath / r'wsa\levels')
 baseUrl_wsa = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/'
 
 qry_things = (
-    f"{frost_config.baseURL}{frost_config.endpoints['things']}"
+    f"{config.baseURL}{config.endpoints['things']}"
     "?$select=@iot.id,properties/uuid"
     "&$expand=Datastreams($select=@iot.id,@iot.selfLink)"
 )

@@ -12,67 +12,93 @@ import os
 import pandas as pd
 from pathlib import Path
 import json
-from frost import frost_config
+# from frost import config
+import frost
+# from frost import config, func
 #------------------------------------------------------------------------------
 #--- global vars
 #------------------------------------------------------------------------------
 #%%
-#server = r'http://localhost:8080/FROST-Server/v1.1/'
 basePath = Path(r'..\data\wsa')
 
-input_File = Path(basePath / 'pegel_stations.json')
+stationsUrl = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json'
 
+#------------------------------------------------------------------------------
+#--- functions
+#------------------------------------------------------------------------------
+
+def update_location(session, thing_id, json_data):
+    """Update thing"""
+    
+    url = rf'{frost.config.endpoints['things']}({thing_id})\Locations'
+    
+    r = session.patch(url, json_data)
+
+    return (r.status_code, r.text)
 #------------------------------------------------------------------------------
 #--- main
 #------------------------------------------------------------------------------
+#%%
+try:
+    with requests.Session() as s:
+    
+        s.headers.update({'content-type': 'application/json; charset=UTF-8'})
+        
+        loaded_stations = s.get(stationsUrl)
 
-df = pd.read_json(input_File)
-# %%
+        if loaded_stations.status_code == 200:
+            
+            stations_json = loaded_stations.json()
+            
+            for i in stations_json:
+                foreign_id = i.get('uuid')
+                                
+                station = frost.Thing(i.get('shortname'), 'water_station', foreign_id)
 
-for i in df.index:
-    station_dict = {
-        'name': df.loc[i].shortname,
-        'description': "",
-        'properties': {
-            'station_type': "water station",
-            'uuid': df.loc[i].uuid,
-            'longname': df.loc[i].longname,
-            'number': df.loc[i].number,
-            'km': df.loc[i].km,
-            # 'water_shortname': df.loc[i].water_shortname,
-            # 'water_longname': df.loc[i].water_longname,
-            'water': df.loc[i].water,
-            'agency': df.loc[i].agency
-        },
-        'Locations': [
-            {
-            'name': df.loc[i].longname, 
-            'description': f"{df.loc[i].water['longname']} at km {df.loc[i].km}",
-            'encodingType': "application/geo+json", 
-            'location': { 
-                'type': 'Point', 
-                'coordinates': [df.loc[i].longitude, df.loc[i].latitude]
-                },
-            }
-        ],
-        'Datastreams': [
-            {
-                'name': f"water levels station {df.loc[i].shortname}",
-                'description': "",
-                'observationType': "",
-                "unitOfMeasurement": {
-                    'name': 'centimeter',
-                    'symbol': 'cm',
-                    'definition': 'na'
-                },
-                'Sensor': {"@iot.id": 1},
-                'ObservedProperty': {"@iot.id": 3}
-            }
-        ]
-    }
-    json_obj = json.dumps(station_dict, indent=4, default=str)
-# %%    
-    r = requests.post(f'{frost_config.baseURL}{frost_config.endpoints['things']}', json_obj)
+                location = frost.Location(i.get('shortname'), i.get('latitude'), i.get('longitude'))
+               
+                for key in i.keys():
+                    if key not in ['uuid', 'longitude', 'latitude']:
+                        station.add_property([key, i.get(key)])
 
-    print(r.text)
+                # location_dict = {
+                #     'name': i.get('longname'), 
+                #     'description': f"{i.get('water').get('longname')} at km {i.get('km')}",
+                #     'encodingType': "application/geo+json", 
+                #     'location': { 
+                #         'type': 'Point', 
+                #         'coordinates': [i.get('longitude'), i.get('latitude')]
+                #         },
+                # }
+                # datastream_dict = {
+                #     'name': f"water levels station {i.get('shortname')}",
+                #     'description': "",
+                #     'observationType': "",
+                #     "unitOfMeasurement": {
+                #         'name': 'centimeter',
+                #         'symbol': 'cm',
+                #         'definition': 'na'
+                #     },
+                #     'Sensor': {"@iot.id": 1},
+                #     'ObservedProperty': {"@iot.id": 3}
+                # }
+
+                thing_id = frost.func.get_foreign_id(s, foreign_id, 'properties/foreign_id')
+
+                # if thing_id:
+                #     print(f'Update thing: {station.name}')
+                #     # Update...
+                #     print(frost.func.update_thing(s, thing_id, station.to_json()))
+                # else:
+                #     print(f'Add thing: {station.name}')
+                #     print(frost.func.add_thing(s, station.to_json()))
+
+except requests.exceptions.HTTPError as http_err:
+    print(f'HTTP error occurred: {http_err}')
+except requests.exceptions.ConnectionError as conn_err:
+    print(f'Connection error occurred: {conn_err}')
+except requests.exceptions.Timeout as timeout_err:
+    print(f'Timeout error occurred: {timeout_err}')
+except requests.exceptions.RequestException as req_err:
+    print(f'An error occurred: {req_err}')
 # %%
