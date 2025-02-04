@@ -8,13 +8,11 @@
 #------------------------------------------------------------------------------
 #%%
 import requests
-import os
-import pandas as pd
 from pathlib import Path
-import json
-# from frost import config
 import frost
-# from frost import config, func
+import frost.func
+import frost.models
+
 #------------------------------------------------------------------------------
 #--- global vars
 #------------------------------------------------------------------------------
@@ -24,18 +22,6 @@ basePath = Path(r'..\data\wsa')
 stationsUrl = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json'
 
 #------------------------------------------------------------------------------
-#--- functions
-#------------------------------------------------------------------------------
-
-def update_location(session, thing_id, json_data):
-    """Update thing"""
-    
-    url = rf'{frost.config.endpoints['things']}({thing_id})\Locations'
-    
-    r = session.patch(url, json_data)
-
-    return (r.status_code, r.text)
-#------------------------------------------------------------------------------
 #--- main
 #------------------------------------------------------------------------------
 #%%
@@ -43,6 +29,7 @@ try:
     with requests.Session() as s:
     
         s.headers.update({'content-type': 'application/json; charset=UTF-8'})
+        s.headers.update({'Accept': 'application/json'})
         
         loaded_stations = s.get(stationsUrl)
 
@@ -53,45 +40,62 @@ try:
             for i in stations_json:
                 foreign_id = i.get('uuid')
                                 
-                station = frost.Thing(i.get('shortname'), 'water_station', foreign_id)
-
-                location = frost.Location(i.get('shortname'), i.get('latitude'), i.get('longitude'))
-               
+                station = frost.models.Thing(i.get('shortname'), 'water_station', foreign_id)
+                
                 for key in i.keys():
                     if key not in ['uuid', 'longitude', 'latitude']:
                         station.add_property([key, i.get(key)])
 
-                # location_dict = {
-                #     'name': i.get('longname'), 
-                #     'description': f"{i.get('water').get('longname')} at km {i.get('km')}",
-                #     'encodingType': "application/geo+json", 
-                #     'location': { 
-                #         'type': 'Point', 
-                #         'coordinates': [i.get('longitude'), i.get('latitude')]
-                #         },
-                # }
-                # datastream_dict = {
-                #     'name': f"water levels station {i.get('shortname')}",
-                #     'description': "",
-                #     'observationType': "",
-                #     "unitOfMeasurement": {
-                #         'name': 'centimeter',
-                #         'symbol': 'cm',
-                #         'definition': 'na'
-                #     },
-                #     'Sensor': {"@iot.id": 1},
-                #     'ObservedProperty': {"@iot.id": 3}
-                # }
+                if i.get('longitude') and i.get('latitude'):
+                    location = frost.models.Location(i.get('shortname'), i.get('latitude'), i.get('longitude'))
+                else:
+                    location = None
 
                 thing_id = frost.func.get_foreign_id(s, foreign_id, 'properties/foreign_id')
 
-                # if thing_id:
-                #     print(f'Update thing: {station.name}')
-                #     # Update...
-                #     print(frost.func.update_thing(s, thing_id, station.to_json()))
-                # else:
-                #     print(f'Add thing: {station.name}')
-                #     print(frost.func.add_thing(s, station.to_json()))
+                if thing_id:
+                    print(f'Update thing: {station.name} (ID: {thing_id})')
+                    # Update...
+                    res_thing = frost.func.update_thing(s, thing_id, station.to_json())
+                    # get url of updated thing from response header
+                    thing_url = res_thing.headers.get('Location')
+                    print(res_thing.status_code, res_thing.text, thing_url)
+                    # Update Location
+                    if location:
+                        location.link_thing(thing_id)
+                        res_location = frost.func.update_location(s, thing_id, location.to_json())
+                        print(res_location.status_code, res_location.text)
+                    
+                    datastream_id = frost.func.get_datastream_id(s, thing_id)
+                    datastream = frost.models.Datastream(f'Water level {station.name}', thing_id, 1, 3)
+                    datastream.unitOfMeasurement['name'] = 'centimeter'
+                    datastream.unitOfMeasurement['symbol'] = 'cm'
+
+                    if datastream_id:
+                        res_datastream = frost.func.update_datastream(s, thing_id, datastream.to_json())
+
+                    
+                else:
+                    print(f'Add thing: {station.name}')
+                    r = frost.func.add_thing(s, station.to_json())
+
+                    if r.status_code == 201:
+                        # Get thing URL from response header
+                        thing_url = r.headers.get('Location')
+                        # extract thing id from url
+                        thing_id = thing_url.split('/')[-1].split('(')[-1][:-1]
+                        
+                        if location:
+                            # Link location with thing
+                            location.link_thing(thing_id)
+                            print('Add location')
+                            r_location = frost.func.add_location(s, thing_url, location.to_json())
+                        
+                        datastream = frost.models.Datastream(f'Water level {station.name}', thing_id, 1, 3)
+                        datastream.unitOfMeasurement['name'] = 'centimeter'
+                        datastream.unitOfMeasurement['symbol'] = 'cm'
+
+                        r_datastream = frost.func.add_datastream(s, thing_id, datastream.to_json())
 
 except requests.exceptions.HTTPError as http_err:
     print(f'HTTP error occurred: {http_err}')

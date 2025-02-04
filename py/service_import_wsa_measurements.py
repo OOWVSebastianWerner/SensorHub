@@ -23,8 +23,9 @@ levelsPath = Path(basePath / r'wsa\levels')
 baseUrl_wsa = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/'
 
 qry_things = (
-    f"{config.baseURL}{config.endpoints['things']}"
-    "?$select=@iot.id,properties/uuid"
+    f"{config.endpoints['things']}"
+    "?$filter=properties/station_type eq 'water_station'"
+    "&$select=@iot.id,properties/foreign_id"
     "&$expand=Datastreams($select=@iot.id,@iot.selfLink)"
 )
 
@@ -51,7 +52,7 @@ with requests.Session() as session:
 
     for thing in things['value']:
         id_ = thing['@iot.id']
-        uuid = thing['properties']['uuid']
+        uuid = thing['properties']['foreign_id']
         datastream = thing['Datastreams'][0]['@iot.selfLink']
 
         datastream_res = session.get(f'{datastream}').json()
