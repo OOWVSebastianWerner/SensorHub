@@ -17,6 +17,7 @@ import frost.models
 #--- global vars
 #------------------------------------------------------------------------------
 #%%
+
 basePath = Path(r'..\data\nlwkn')
 # Public API Key
 api_key = '9dc05f4e3b4a43a9988d747825b39f43'
@@ -117,4 +118,3 @@ except requests.exceptions.Timeout as timeout_err:
     print(f'Timeout error occurred: {timeout_err}')
 except requests.exceptions.RequestException as req_err:
     print(f'An error occurred: {req_err}')
-# %%
