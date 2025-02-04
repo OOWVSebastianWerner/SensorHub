@@ -17,6 +17,7 @@ class WSA_API(ConfigurableResource):
                 'content-type': 'application/json; charset=UTF-8'})
 
 class NLWKN_API(ConfigurableResource):
+    
     def request( self, endpoint: str) -> Response:
         return requests.get(
             f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/{endpoint}',
@@ -26,7 +27,7 @@ class NLWKN_API(ConfigurableResource):
         )
     
 class FROST_API(ConfigurableResource):
-
+   
     def request(self, endpoint: str) -> Response:
         return requests.get(
             f'http://localhost:8080/FROST-Server/v1.1/{endpoint}'
