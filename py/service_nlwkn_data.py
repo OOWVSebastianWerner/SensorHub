@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from frost import frost_config
+from frost import config
 
 #------------------------------------------------------------------------------
 #--- global vars
@@ -28,7 +28,7 @@ tage = -7
 utc = ZoneInfo('UTC')
 
 qry_things = (
-    f"{frost_config.baseURL}{frost_config.endpoints['things']}"
+    f"{config.endpoints['things']}"
     "?$filter=properties/station_type eq 'groundwater_station'"
     "&$select=@iot.id,properties/foreign_id,properties/MBP_mNHN"
     "&$expand=Datastreams($select=@iot.id,@iot.selfLink)"
