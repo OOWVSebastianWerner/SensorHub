@@ -17,8 +17,8 @@ from frost import config
 #------------------------------------------------------------------------------
 #%%
 
-basePath = Path(r'..\data')
-levelsPath = Path(basePath / r'wsa\levels')
+# basePath = Path(r'..\data')
+# levelsPath = Path(basePath / r'wsa\levels')
 
 baseUrl_wsa = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/'
 
@@ -49,10 +49,19 @@ with requests.Session() as session:
 
     # get things from FROST-Server
     things = session.get(qry_things).json()
+    
+    # FROST-Server limits requests to 100 entries by default
+    # as long as there is '@iot.nextLink' present in things, do another request 
+    # and combine it with things
+    while '@iot.nextLink' in things.keys():
+        things = things | session.get(things['@iot.nextLink']).json()
+        things.pop('@iot.nextLink')
 
     for thing in things['value']:
         id_ = thing['@iot.id']
         uuid = thing['properties']['foreign_id']
+        # IMPORTANT: only works when there is only one datastream per thing
+        # @TODO: add filter/check to get the correct datastream if there is more than one.
         datastream = thing['Datastreams'][0]['@iot.selfLink']
 
         datastream_res = session.get(f'{datastream}').json()

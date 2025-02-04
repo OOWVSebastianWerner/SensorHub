@@ -1,10 +1,10 @@
 #------------------------------------------------------------------------------
-# Name:         data importer wsa stations
-#               Imports the wsa stations into the FROST-Server
+# Name:         data importer nlwkn stations
+#               Imports the nlwkn stations into the FROST-Server
 #
 # author:       Sebastian Werner
 # email:        s.werner@oowv.de
-# created:      07.11.2024
+# created:      04.02.2025
 #------------------------------------------------------------------------------
 #%%
 import requests
@@ -17,10 +17,23 @@ import frost.models
 #--- global vars
 #------------------------------------------------------------------------------
 #%%
-basePath = Path(r'..\data\wsa')
+basePath = Path(r'..\data\nlwkn')
+# Public API Key
+api_key = '9dc05f4e3b4a43a9988d747825b39f43'
 
-stationsUrl = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json'
+stationsUrl = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key={api_key}'
 
+# values that will be added to properties of thing
+property_keys = [
+    'Betreiber',
+    'MS_FOK_mNHN',
+    'MS_FUK_mNHN',
+    'MS_GOK_mNHN',
+    'MS_MBP_mNHN',
+]
+# keys for latitude and longitude in incoming json
+key_lat = 'WGS84Hochwert'
+key_lon = 'WGS84Rechtswert'
 #------------------------------------------------------------------------------
 #--- main
 #------------------------------------------------------------------------------
@@ -37,18 +50,16 @@ try:
             
             stations_json = loaded_stations.json()
             
-            for i in stations_json:
-                # get foreign id from loaded stations
-                foreign_id = i.get('uuid')
-                                
-                station = frost.models.Thing(i.get('shortname'), 'water_station', foreign_id)
+            for i in stations_json['getStammdatenResult']:
+                foreign_id = i.get('STA_ID')
+                print(foreign_id)                
+                station = frost.models.Thing(i.get('Name'), 'groundwater_station', foreign_id)
                 
-                for key in i.keys():
-                    if key not in ['uuid', 'longitude', 'latitude']:
-                        station.add_property([key, i.get(key)])
+                for key in property_keys:
+                    station.add_property([key, i.get(key)])
 
-                if i.get('longitude') and i.get('latitude'):
-                    location = frost.models.Location(i.get('shortname'), i.get('latitude'), i.get('longitude'))
+                if i.get(key_lat) and i.get(key_lon):
+                    location = frost.models.Location(i.get('Name'), i.get(key_lat), i.get(key_lon))
                 else:
                     location = None
 
@@ -68,14 +79,14 @@ try:
                         print(res_location.status_code, res_location.text)
                     
                     datastream_id = frost.func.get_datastream_id(s, thing_id)
-                    datastream = frost.models.Datastream(f'Water level {station.name}', thing_id, 1, 3)
-                    datastream.unitOfMeasurement['name'] = 'centimeter'
-                    datastream.unitOfMeasurement['symbol'] = 'cm'
+                    datastream = frost.models.Datastream(f'Groundwater level {station.name}', thing_id, 1, 3)
+                    datastream.unitOfMeasurement['name'] = 'meter'
+                    datastream.unitOfMeasurement['symbol'] = 'm'
 
                     if datastream_id:
                         res_datastream = frost.func.update_datastream(s, thing_id, datastream.to_json())
+                        print(res_datastream.status_code)
 
-                    
                 else:
                     print(f'Add thing: {station.name}')
                     r = frost.func.add_thing(s, station.to_json())
@@ -92,9 +103,9 @@ try:
                             print('Add location')
                             r_location = frost.func.add_location(s, thing_url, location.to_json())
                         
-                        datastream = frost.models.Datastream(f'Water level {station.name}', thing_id, 1, 3)
-                        datastream.unitOfMeasurement['name'] = 'centimeter'
-                        datastream.unitOfMeasurement['symbol'] = 'cm'
+                        datastream = frost.models.Datastream(f'Groundwater level {station.name}', thing_id, 1, 3)
+                        datastream.unitOfMeasurement['name'] = 'meter'
+                        datastream.unitOfMeasurement['symbol'] = 'm'
 
                         r_datastream = frost.func.add_datastream(s, thing_id, datastream.to_json())
 

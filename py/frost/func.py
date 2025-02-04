@@ -152,7 +152,7 @@ def update_datastream(session, thing_id, json_data):
 
     if datastream_id:
         print('Updating existing datastream.')
-        url = f'{endpoints['things']}({thing_id})/Datastream({datastream_id})'
+        url = f'{endpoints['things']}({thing_id})/Datastreams({datastream_id})'
         response = session.patch(url, json_data)
         
         return response
