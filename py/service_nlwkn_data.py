@@ -30,7 +30,7 @@ utc = ZoneInfo('UTC')
 qry_things = (
     f"{config.endpoints['things']}"
     "?$filter=properties/station_type eq 'groundwater_station'"
-    "&$select=@iot.id,properties/foreign_id,properties/MBP_mNHN"
+    "&$select=@iot.id,properties/foreign_id,properties/MS_MBP_mNHN"
     "&$expand=Datastreams($select=@iot.id,@iot.selfLink)"
 )
 
@@ -65,7 +65,7 @@ with requests.Session() as session:
     for thing in things['value']:
         id_ = thing['@iot.id']
         foreign_id = thing['properties']['foreign_id']
-        mbp = thing['properties']['MBP_mNHN']
+        mbp = thing['properties']['MS_MBP_mNHN']
         datastream = thing['Datastreams'][0]['@iot.selfLink']
 
         # get last phenomenonTime in Datastream
