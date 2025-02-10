@@ -1,0 +1,145 @@
+#------------------------------------------------------------------------------
+# Name:         data importer dwd stations
+#               Imports the dwd stations into the FROST-Server
+#
+# author:       Ivo Sieghold
+# email:        i.sieghold@oowv.de
+# created:      20.11.2024
+#------------------------------------------------------------------------------
+#%%
+import requests
+from pathlib import Path
+import frost
+import frost.func
+import frost.models
+import pandas as pd
+
+server = r'http://localhost:8080/FROST-Server/v1.1/'
+basePath = Path(r'C:\Users\User\Desktop\stundendaten')
+rows = []
+file_path = r'C:\Users\User\Desktop\stundendaten\stations.txt'
+
+with open(file_path, "r", encoding="latin1") as f:
+    for line in f:
+        # Zeile in Felder aufteilen
+        parts = line.split()
+
+        # Relevante Felder extrahieren
+        if len(parts) >= 9:
+            stations_id = parts[0]
+            von_datum = parts[1]
+            bis_datum = parts[2]
+            stationshoehe = parts[3]
+            geobreite = parts[4]
+            geolaenge = parts[5]
+            bundesland = parts[-2]
+            abgabe = parts[-1]
+            
+            # Stationsname rekonstruiert aus allen Feldern zwischen `geolaenge` und `bundesland`
+            stationsname = " ".join(parts[6:-2])
+            
+            rows.append([
+                stations_id, von_datum, bis_datum, stationshoehe, geobreite, 
+                geolaenge, stationsname, bundesland, abgabe
+            ])
+
+
+spaltennamen = [
+     "Stations_id", "von_datum", "bis_datum", "Stationshoehe", "geoBreite", 
+     "geoLaenge", "Stationsname", "Bundesland", "Abgabe"
+]
+
+#%%
+
+df = pd.DataFrame(rows, columns=spaltennamen)
+df= df.drop(0)
+
+df['Stations_id'] = df['Stations_id'].astype(int)
+df['von_datum'] = df['von_datum'].astype(int)
+df['bis_datum'] = df['bis_datum'].astype(int)
+df['Stationshoehe'] = df['Stationshoehe'].astype(float)
+df['geoBreite'] = df['geoBreite'].astype(float)
+df['geoLaenge'] = df['geoLaenge'].astype(float)
+
+#%%
+
+json_data = df.to_json(orient='records', indent=4,force_ascii=False)
+
+print(json_data)
+
+
+# %%
+
+try:
+    with requests.Session() as s:
+    
+        s.headers.update({'content-type': 'application/json; charset=UTF-8'})
+        s.headers.update({'Accept': 'application/json'})
+
+        for info in df:
+            foreign_id = info.get('Stations_id')
+            station = frost.models.Thing(info.get('Stationsname'), 'raingauge_station', foreign_id)
+
+            for key in info.keys():
+                if key not in ['Stations_id','geoBreite','geoLaenge']:
+                    station.add_property([key,info.get(key)])
+            
+            if info.get('longitude') and info.get('latitude'):
+                location = frost.models.Location(info.get('Stationsname'), info.get('geoBreite'), info.get('geoLaenge'))
+            else:
+                location = None
+
+            thing_id = frost.func.get_foreign_id(s, foreign_id, 'properties/Stations_id')
+
+            if thing_id:
+                print(f'Update thing: {station.name} (ID: {thing_id})')
+                # Update...
+                res_thing = frost.func.update_thing(s, thing_id, station.to_json())
+                # get url of updated thing from response header
+                thing_url = res_thing.headers.get('Location')
+                print(res_thing.status_code, res_thing.text, thing_url)
+                # Update Location
+                if location:
+                    location.link_thing(thing_id)
+                    res_location = frost.func.update_location(s, thing_id, location.to_json())
+                    print(res_location.status_code, res_location.text)
+                
+                datastream_id = frost.func.get_datastream_id(s, thing_id)
+                datastream = frost.models.Datastream(f'Rain high {station.name}', thing_id, 1, 3)
+                datastream.unitOfMeasurement['name'] = 'millimeter'
+                datastream.unitOfMeasurement['symbol'] = 'mm'
+
+                if datastream_id:
+                    res_datastream = frost.func.update_datastream(s, thing_id, datastream.to_json())
+
+                else:
+                    print(f'Add thing: {station.name}')
+                    r = frost.func.add_thing(s, station.to_json())
+
+                    if r.status_code == 201:
+                        # Get thing URL from response header
+                        thing_url = r.headers.get('Location')
+                        # extract thing id from url
+                        thing_id = thing_url.split('/')[-1].split('(')[-1][:-1]
+                        
+                        if location:
+                            # Link location with thing
+                            location.link_thing(thing_id)
+                            print('Add location')
+                            r_location = frost.func.add_location(s, thing_url, location.to_json())
+                        
+                        datastream = frost.models.Datastream(f'Rain high {station.name}', thing_id, 1, 3)
+                        datastream.unitOfMeasurement['name'] = 'millimeter'
+                        datastream.unitOfMeasurement['symbol'] = 'mm'
+
+                        r_datastream = frost.func.add_datastream(s, thing_id, datastream.to_json())
+
+except requests.exceptions.HTTPError as http_err:
+    print(f'HTTP error occurred: {http_err}')
+except requests.exceptions.ConnectionError as conn_err:
+    print(f'Connection error occurred: {conn_err}')
+except requests.exceptions.Timeout as timeout_err:
+    print(f'Timeout error occurred: {timeout_err}')
+except requests.exceptions.RequestException as req_err:
+    print(f'An error occurred: {req_err}')
+# %%
