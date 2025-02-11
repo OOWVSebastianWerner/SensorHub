@@ -59,8 +59,9 @@ with requests.Session() as session:
     # as long as there is '@iot.nextLink' present in things, do another request 
     # and combine it with things
     while '@iot.nextLink' in things.keys():
-        things = things | session.get(things['@iot.nextLink']).json()
+        nextLink = things['@iot.nextLink']
         things.pop('@iot.nextLink')
+        things = things | session.get(nextLink).json()
 
     for thing in things['value']:
         id_ = thing['@iot.id']

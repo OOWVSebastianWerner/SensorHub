@@ -33,8 +33,8 @@ property_keys = [
     'MS_MBP_mNHN',
 ]
 # keys for latitude and longitude in incoming json
-key_lat = 'WGS84Hochwert'
-key_lon = 'WGS84Rechtswert'
+key_lat = 'WGS84Rechtswert'
+key_lon = 'WGS84Hochwert'
 #------------------------------------------------------------------------------
 #--- main
 #------------------------------------------------------------------------------
@@ -118,3 +118,4 @@ except requests.exceptions.Timeout as timeout_err:
     print(f'Timeout error occurred: {timeout_err}')
 except requests.exceptions.RequestException as req_err:
     print(f'An error occurred: {req_err}')
+# %%

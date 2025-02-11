@@ -74,8 +74,9 @@ try:
 
                     if datastream_id:
                         res_datastream = frost.func.update_datastream(s, thing_id, datastream.to_json())
+                    else:
+                        res_datastream = frost.func.add_datastream(s, thing_id, datastream.to_json())
 
-                    
                 else:
                     print(f'Add thing: {station.name}')
                     r = frost.func.add_thing(s, station.to_json())
