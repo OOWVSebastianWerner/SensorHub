@@ -15,9 +15,10 @@ import frost.models
 import pandas as pd
 
 server = r'http://localhost:8080/FROST-Server/v1.1/'
-basePath = Path(r'C:\Users\User\Desktop\stundendaten')
+basePath = Path(r'..\data\dwd')
+#dwd_stations_url = r'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/recent/RR_Stundenwerte_Beschreibung_Stationen.txt'
 rows = []
-file_path = r'C:\Users\User\Desktop\stundendaten\stations.txt'
+file_path = r'..\data\dwd\stations.txt'
 
 with open(file_path, "r", encoding="latin1") as f:
     for line in f:
@@ -51,8 +52,8 @@ spaltennamen = [
 
 #%%
 
-df = pd.DataFrame(rows, columns=spaltennamen)
-df= df.drop(0)
+df = pd.DataFrame(rows[2:], columns=spaltennamen)
+#df = df.drop(0)
 
 df['Stations_id'] = df['Stations_id'].astype(int)
 df['von_datum'] = df['von_datum'].astype(int)
@@ -63,9 +64,10 @@ df['geoLaenge'] = df['geoLaenge'].astype(float)
 
 #%%
 
-json_data = df.to_json(orient='records', indent=4,force_ascii=False)
+#json_data = df.to_json(orient='records', indent=4,force_ascii=False)
+dict_data = df.to_dict(orient='records')
 
-print(json_data)
+#print(dict_data)
 
 
 # %%
@@ -76,7 +78,7 @@ try:
         s.headers.update({'content-type': 'application/json; charset=UTF-8'})
         s.headers.update({'Accept': 'application/json'})
 
-        for info in df:
+        for info in dict_data:
             foreign_id = info.get('Stations_id')
             station = frost.models.Thing(info.get('Stationsname'), 'raingauge_station', foreign_id)
 
@@ -89,7 +91,7 @@ try:
             else:
                 location = None
 
-            thing_id = frost.func.get_foreign_id(s, foreign_id, 'properties/Stations_id')
+            thing_id = frost.func.get_foreign_id(s, foreign_id, 'properties/foreign_id')
 
             if thing_id:
                 print(f'Update thing: {station.name} (ID: {thing_id})')
