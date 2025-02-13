@@ -59,9 +59,16 @@ with requests.Session() as session:
     # as long as there is '@iot.nextLink' present in things, do another request 
     # and combine it with things
     while '@iot.nextLink' in things.keys():
+        
         nextLink = things['@iot.nextLink']
-        things.pop('@iot.nextLink')
-        things = things | session.get(nextLink).json()
+        next_things = session.get(nextLink).json()
+
+        things['value'] += next_things['value']
+
+        if '@iot.nextLink' in next_things.keys():
+            things['@iot.nextLink'] = next_things['@iot.nextLink']
+        else:
+            things.pop('@iot.nextLink')
 
     for thing in things['value']:
         id_ = thing['@iot.id']
@@ -77,8 +84,6 @@ with requests.Session() as session:
             lastEntryTime = None
 
         print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
-        # # !!! FOR DEV ONLY !!!
-        # if foreign_id == 14828010:
 
         url = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{foreign_id}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key={api_key}' 
         
@@ -99,8 +104,7 @@ with requests.Session() as session:
             df['phenomenonTime'] = df['phenomenonTime'].apply(lambda x: x.isoformat())
             df['result'] = df['result'].apply(lambda x: mbp - x)
             res = post_observations(session, datastream, df)
-            # for i in res:
-            #     print(i[0], i[1])
+            print(res)
         else:
             print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
 # %%

@@ -24,17 +24,27 @@ with requests.session() as session:
 
     data_meas_json = session.get(one_datastream).json()
 
+    # FROST-Server limits requests to 100 entries by default
+    # as long as there is '@iot.nextLink' present in things, do another request 
+    # and combine it with things
     while '@iot.nextLink' in data_meas_json.keys():
-        print('present')
-        data_meas_json = data_meas_json | session.get(data_meas_json['@iot.nextLink']).json()
-        # data_meas_json.pop('@iot.nextLink')
+        
+        nextLink = data_meas_json['@iot.nextLink']
+        next_data_meas_json = session.get(nextLink).json()
 
+        data_meas_json['value'] += next_data_meas_json['value']
+
+        if '@iot.nextLink' in next_data_meas_json.keys():
+            data_meas_json['@iot.nextLink'] = next_data_meas_json['@iot.nextLink']
+        else:
+            data_meas_json.pop('@iot.nextLink')
 
 with open(r'data\locations.geojson', 'w') as loc_geojson:
     loc_geojson.write(json.dumps(locations))
 
 geo_df = gpd.read_file(r'data\locations.geojson')
 
+df_meas = pd.DataFrame(data_meas_json['value'])
 #%%
 
 fig = px.scatter_map(geo_df,
@@ -47,8 +57,9 @@ fig = px.scatter_map(geo_df,
 
 fig.update_traces(cluster=dict(enabled=True))
 
-# fig2 = px.line(data_meas)
+fig2 = px.line(df_meas, 'phenomenonTime','result')
 
+#%%
 app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = [
@@ -58,7 +69,8 @@ app.layout = [
     dcc.Graph(figure=fig),
     html.Div(children=
     dash_table.DataTable(data=geo_df[['name', 'description','properties/station_type']].to_dict('records'), page_size=20)
-    )], id='main', className='container')
+    ),
+    dcc.Graph(figure=fig2)], id='main', className='container')
 ]
 
 # @callback(
