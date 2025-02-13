@@ -2,7 +2,7 @@
 # Global config vars
 # ------------------------------------------------------------------------------
 #@Todo: refactor to dotenv
-baseURL = 'http://localhost:8080'
+baseURL = 'http://localhost:27711'
 
 serverURL = '/FROST-Server/v1.1/'
 

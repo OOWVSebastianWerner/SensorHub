@@ -85,11 +85,11 @@ try:
                             # extract thing id from url
                             thing_id = thing_url.split('/')[-1].split('(')[-1][:-1]
                             
-                            
                             # Link location with thing
                             location.link_thing(thing_id)
                             print('Add location')
                             r_location = frost.func.add_location(s, thing_url, location.to_json())
+                            print(r_location)
                             
                             datastream = frost.models.Datastream(f'Water level {station.name}', thing_id, 1, 3)
                             datastream.unitOfMeasurement['name'] = 'centimeter'
