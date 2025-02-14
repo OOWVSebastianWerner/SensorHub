@@ -54,8 +54,17 @@ with requests.Session() as session:
     # as long as there is '@iot.nextLink' present in things, do another request 
     # and combine it with things
     while '@iot.nextLink' in things.keys():
-        things = things | session.get(things['@iot.nextLink']).json()
-        things.pop('@iot.nextLink')
+        
+        nextLink = things['@iot.nextLink']
+        next_things = session.get(nextLink).json()
+
+        things['value'] += next_things['value']
+
+        if '@iot.nextLink' in next_things.keys():
+            things['@iot.nextLink'] = next_things['@iot.nextLink']
+        else:
+            things.pop('@iot.nextLink')
+
 
     for thing in things['value']:
         id_ = thing['@iot.id']
@@ -72,11 +81,10 @@ with requests.Session() as session:
             lastEntryTime = None
 
         print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
-        # # !!! FOR DEV ONLY !!!
-        # if uuid == '47174d8f-1b8e-4599-8a59-b580dd55bc87':
-            # get measurements
+        
         response = session.get(f'{baseUrl_wsa}stations/{uuid}/W/measurements.json')
-        if response.status_code == 200:
+        
+        if response.status_code == 200 and response.json():
             # create DataFrame
             df = pd.DataFrame(response.json())
             df.rename(columns={'timestamp': 'phenomenonTime', 'value': 'result'}, inplace=True)
@@ -86,6 +94,7 @@ with requests.Session() as session:
             else:
                 df_to_post = df[-5:]
             
-            post_observations(session, datastream, df_to_post)
+            r = post_observations(session, datastream, df_to_post)
+            print(r)
 
 # %%

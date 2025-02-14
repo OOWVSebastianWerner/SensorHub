@@ -2,13 +2,15 @@
 # Global config vars
 # ------------------------------------------------------------------------------
 #@Todo: refactor to dotenv
-baseURL = 'http://localhost:8080'
+import os
+from dotenv import load_dotenv
+load_dotenv('../../.env')
 
-serverURL = '/FROST-Server/v1.1/'
+baseURL = os.getenv('baseURL')
 
 endpoints = {
-    'things': f'{baseURL}{serverURL}Things',
-    'locations': f'{baseURL}{serverURL}Locations',
-    'sensors': f'{baseURL}{serverURL}Sensors',
-    'observedProperties': f'{baseURL}{serverURL}ObservedProperties'
+    'things': f'{baseURL}Things',
+    'locations': f'{baseURL}Locations',
+    'sensors': f'{baseURL}Sensors',
+    'observedProperties': f'{baseURL}ObservedProperties'
 }

@@ -4,7 +4,7 @@
 #%%
 import requests
 import json
-from .config import endpoints
+from config import endpoints
 
 Sensors = [
     {
