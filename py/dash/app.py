@@ -16,7 +16,7 @@ load_dotenv('..\\..\\.env')
 
 all_locations = f'{os.getenv('baseURL')}Things?$expand=Locations($select=location)&$top=1000&$resultFormat=GeoJSON'
 
-one_datastream = f'{os.getenv('baseURL')}Things(663)/Datastreams(1)/Observations'
+one_datastream = f'{os.getenv('baseURL')}Things(1)/Datastreams(1)/Observations'
 
 with requests.session() as session:
 

@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 from datetime import datetime
 from frost import config
+from tqdm import tqdm
 
 #------------------------------------------------------------------------------
 #--- global vars
@@ -66,7 +67,7 @@ with requests.Session() as session:
             things.pop('@iot.nextLink')
 
 
-    for thing in things['value']:
+    for thing in tqdm(things['value'], desc='Loading observations for stations...', ascii=False, ncols=75):
         id_ = thing['@iot.id']
         uuid = thing['properties']['foreign_id']
         # IMPORTANT: only works when there is only one datastream per thing
@@ -80,7 +81,7 @@ with requests.Session() as session:
         else:
             lastEntryTime = None
 
-        print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
+        # print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
         
         response = session.get(f'{baseUrl_wsa}stations/{uuid}/W/measurements.json')
         
@@ -95,6 +96,6 @@ with requests.Session() as session:
                 df_to_post = df[-5:]
             
             r = post_observations(session, datastream, df_to_post)
-            print(r)
+            # print(r)
 
 # %%

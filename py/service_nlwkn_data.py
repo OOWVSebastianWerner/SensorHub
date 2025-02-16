@@ -12,13 +12,13 @@ import pandas as pd
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from frost import config
+from tqdm import tqdm
 
 #------------------------------------------------------------------------------
 #--- global vars
 #------------------------------------------------------------------------------
 #%%
 
-basePath = Path(r'..\data')
 api_key = '9dc05f4e3b4a43a9988d747825b39f43'
 
 baseUrl_nlwkn = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key={api_key}'
@@ -70,7 +70,7 @@ with requests.Session() as session:
         else:
             things.pop('@iot.nextLink')
 
-    for thing in things['value']:
+    for thing in tqdm(things['value'], desc='Loading observations for station...', ascii=False, ncols=75):
         id_ = thing['@iot.id']
         foreign_id = thing['properties']['foreign_id']
         mbp = thing['properties']['MS_MBP_mNHN']
@@ -83,7 +83,7 @@ with requests.Session() as session:
         else:
             lastEntryTime = None
 
-        print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
+        # print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
 
         url = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{foreign_id}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key={api_key}' 
         
@@ -102,9 +102,16 @@ with requests.Session() as session:
             df.rename(columns={'DatumUTC': 'phenomenonTime', 'Wert': 'result'}, inplace=True)
             df = df.drop(['Datum', 'Grundwasserstandsklasse'], axis=1)
             df['phenomenonTime'] = df['phenomenonTime'].apply(lambda x: x.isoformat())
-            df['result'] = df['result'].apply(lambda x: mbp - x)
-            res = post_observations(session, datastream, df)
-            print(res)
-        else:
-            print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
+            df['result'] = df['result'].apply(lambda x: (mbp - x).round(2))
+
+            if lastEntryTime:
+                df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
+            else:
+                df_to_post = df[-5:]
+
+            res = post_observations(session, datastream, df_to_post)
+            # print(res)
+        # else:
+            # print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
+
 # %%
