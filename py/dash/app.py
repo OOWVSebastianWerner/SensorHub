@@ -1,5 +1,9 @@
 #%%
-from dash import Dash, html, dcc, callback, Output, Input, dash_table
+import dash 
+from dash import dcc
+from dash import html
+from dash.dependencies import Output,Input
+from dash import dash_table
 import plotly.express as px
 import pandas as pd
 import geopandas as gpd
@@ -13,31 +17,45 @@ import dash_bootstrap_components as dbc
 load_dotenv('..\\..\\.env')
 
 #%%
+frost_baseURL = os.getenv('baseURL')
 
-all_locations = f'{os.getenv('baseURL')}Things?$expand=Locations($select=location)&$top=1000&$resultFormat=GeoJSON'
+all_things = f'{frost_baseURL}Things?$select=@iot.id,name,properties'
+all_locations = f'{frost_baseURL}Things?$expand=Locations($select=location)&$top=10000&$resultFormat=GeoJSON'
+all_datastreams = f'{frost_baseURL}Datastreams?$select=@iot.id,name,unitOfMeasurement'
+all_observations = f'{frost_baseURL}Observations?$select=@iot.id,phenomenonTime,result'
 
-one_datastream = f'{os.getenv('baseURL')}Things(1)/Datastreams(1)/Observations'
+one_datastream = f'{frost_baseURL}Things(664)/Datastreams(2)/Observations'
 
+def get_data(session, url):
+    """Get data from FROST-Server."""
+    
+    data = session.get(url).json()
+    
+    while '@iot.nextLink' in data.keys():
+        
+        nextLink = data['@iot.nextLink']
+        next_data = session.get(nextLink).json()
+
+        data['value'] += next_data['value']
+
+        if '@iot.nextLink' in next_data.keys():
+            data['@iot.nextLink'] = next_data['@iot.nextLink']
+        else:
+            data.pop('@iot.nextLink')
+    
+    return data
+
+# Get data
 with requests.session() as session:
 
     locations = session.get(all_locations).json()
+    
+    things = get_data(session, all_things)
+    datastreams = get_data(session, all_datastreams)
+    observations = get_data(session, all_observations)
 
-    data_meas_json = session.get(one_datastream).json()
+    data_meas_json = get_data(session, one_datastream)
 
-    # FROST-Server limits requests to 100 entries by default
-    # as long as there is '@iot.nextLink' present in things, do another request 
-    # and combine it with things
-    while '@iot.nextLink' in data_meas_json.keys():
-        
-        nextLink = data_meas_json['@iot.nextLink']
-        next_data_meas_json = session.get(nextLink).json()
-
-        data_meas_json['value'] += next_data_meas_json['value']
-
-        if '@iot.nextLink' in next_data_meas_json.keys():
-            data_meas_json['@iot.nextLink'] = next_data_meas_json['@iot.nextLink']
-        else:
-            data_meas_json.pop('@iot.nextLink')
 
 with open(r'data\locations.geojson', 'w') as loc_geojson:
     loc_geojson.write(json.dumps(locations))
@@ -60,18 +78,56 @@ fig.update_traces(cluster=dict(enabled=True))
 fig2 = px.line(df_meas, 'phenomenonTime','result')
 
 #%%
-app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = [
-    html.Div(children=[
-    html.H1(children='SensorHub Dashboard', style={'textAlign':'center'}),
-    # dcc.Dropdown(geo_df.name.unique(), 'Canada', id='dropdown-selection'),
-    dcc.Graph(figure=fig),
-    html.Div(children=
-    dash_table.DataTable(data=geo_df[['name', 'description','properties/station_type']].to_dict('records'), page_size=20)
-    ),
-    dcc.Graph(figure=fig2)], id='main', className='container')
+    dcc.Location(id='url'),
+    html.Div(id='container', children=[
+        dbc.NavbarSimple(
+            children=[
+            dbc.NavItem(dbc.NavLink("Home", href="/")),
+            dbc.NavItem(dbc.NavLink("Graph", href="/graph")),
+            dbc.NavItem(dbc.NavLink("Table", href="/table")),
+            ],
+        brand="SensorHub Dashboard",
+        brand_href="#",
+        color="primary",
+        dark=True,
+        ),
+        # dcc.Link('Home', href='/'),
+        # dcc.Link('Graph', href='/graph'),
+        # dcc.Link('Table', href='/table'),
+        
+        html.Div(id='page-content')
+        ] , className='container' 
+    )
 ]
+
+# index-page
+index_page = html.Div(id='page-content', children=[
+                    dcc.Graph(figure=fig),
+    # dcc.Dropdown(geo_df.name.unique(), 'Canada', id='dropdown-selection'),    
+])
+
+# table-page
+table_page = html.Div(id='page-content', children=[
+                dash_table.DataTable(data=geo_df[['name', 'description','properties/station_type']].to_dict('records'), page_size=20)
+            ]),
+
+# graph-page
+graph_page = html.Div(id='page-content', children = [
+                dcc.Graph(figure=fig2)
+            ]),
+
+@app.callback(dash.dependencies.Output('page-content', 'children'), 
+              [dash.dependencies.Input('url','pathname')])
+def display_page(pathname):
+    if pathname == '/table':
+        return table_page
+    elif pathname == '/graph':
+        return graph_page
+    else:
+        return index_page
 
 # @callback(
 #     Output('graph-content', 'figure'),
