@@ -132,14 +132,14 @@ def update_location(session, thing_id, json_data):
     location_id = get_location_id(session, thing_id)
 
     if location_id:
-        print('Updating existing location.')
+        # print('Updating existing location.')
         url = f'{endpoints['locations']}({location_id})'
         response = session.patch(url, json_data)
 
         return response
     
     else:
-        print(f'Found no location for thing {thing_id}.\nAdd new location.')
+        # print(f'Found no location for thing {thing_id}.\nAdd new location.')
         url = f'{endpoints['things']}({thing_id})/Locations'
         response = session.post(url, json_data)
 
@@ -151,14 +151,14 @@ def update_datastream(session, thing_id, json_data):
     datastream_id = get_datastream_id(session, thing_id)
 
     if datastream_id:
-        print('Updating existing datastream.')
+        # print('Updating existing datastream.')
         url = f'{endpoints['things']}({thing_id})/Datastreams({datastream_id})'
         response = session.patch(url, json_data)
         
         return response
     
     else:
-        print('No datastream found. Add new datastream.')
+        # print('No datastream found. Add new datastream.')
         url = f'{endpoints['things']}({thing_id})/Datastreams'
         response = session.post(url, json_data)
 

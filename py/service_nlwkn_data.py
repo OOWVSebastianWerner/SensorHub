@@ -12,13 +12,13 @@ import pandas as pd
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from frost import config
+from tqdm import tqdm
 
 #------------------------------------------------------------------------------
 #--- global vars
 #------------------------------------------------------------------------------
 #%%
 
-basePath = Path(r'..\data')
 api_key = '9dc05f4e3b4a43a9988d747825b39f43'
 
 baseUrl_nlwkn = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key={api_key}'
@@ -30,7 +30,7 @@ utc = ZoneInfo('UTC')
 qry_things = (
     f"{config.endpoints['things']}"
     "?$filter=properties/station_type eq 'groundwater_station'"
-    "&$select=@iot.id,properties/foreign_id,properties/MBP_mNHN"
+    "&$select=@iot.id,properties/foreign_id,properties/MS_MBP_mNHN"
     "&$expand=Datastreams($select=@iot.id,@iot.selfLink)"
 )
 
@@ -59,13 +59,21 @@ with requests.Session() as session:
     # as long as there is '@iot.nextLink' present in things, do another request 
     # and combine it with things
     while '@iot.nextLink' in things.keys():
-        things = things | session.get(things['@iot.nextLink']).json()
-        things.pop('@iot.nextLink')
+        
+        nextLink = things['@iot.nextLink']
+        next_things = session.get(nextLink).json()
 
-    for thing in things['value']:
+        things['value'] += next_things['value']
+
+        if '@iot.nextLink' in next_things.keys():
+            things['@iot.nextLink'] = next_things['@iot.nextLink']
+        else:
+            things.pop('@iot.nextLink')
+
+    for thing in tqdm(things['value'], desc='Loading observations for station...', ascii=False, ncols=75):
         id_ = thing['@iot.id']
         foreign_id = thing['properties']['foreign_id']
-        mbp = thing['properties']['MBP_mNHN']
+        mbp = thing['properties']['MS_MBP_mNHN']
         datastream = thing['Datastreams'][0]['@iot.selfLink']
 
         # get last phenomenonTime in Datastream
@@ -75,9 +83,7 @@ with requests.Session() as session:
         else:
             lastEntryTime = None
 
-        print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
-        # # !!! FOR DEV ONLY !!!
-        # if foreign_id == 14828010:
+        # print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
 
         url = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{foreign_id}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key={api_key}' 
         
@@ -96,10 +102,16 @@ with requests.Session() as session:
             df.rename(columns={'DatumUTC': 'phenomenonTime', 'Wert': 'result'}, inplace=True)
             df = df.drop(['Datum', 'Grundwasserstandsklasse'], axis=1)
             df['phenomenonTime'] = df['phenomenonTime'].apply(lambda x: x.isoformat())
-            df['result'] = df['result'].apply(lambda x: mbp - x)
-            res = post_observations(session, datastream, df)
-            # for i in res:
-            #     print(i[0], i[1])
-        else:
-            print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
+            df['result'] = df['result'].apply(lambda x: (mbp - x).round(2))
+
+            if lastEntryTime:
+                df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
+            else:
+                df_to_post = df[-5:]
+
+            res = post_observations(session, datastream, df_to_post)
+            # print(res)
+        # else:
+            # print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
+
 # %%
