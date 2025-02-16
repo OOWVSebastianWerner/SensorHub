@@ -97,12 +97,12 @@ try:
                     res_thing = frost.func.update_thing(s, thing_id, station.to_json())
                     # get url of updated thing from response header
                     thing_url = res_thing.headers.get('Location')
-                    print(res_thing.status_code, res_thing.text, thing_url)
+                    print('Update thing: ', res_thing.status_code, res_thing.text, thing_url)
                     # Update Location
                     if location:
                         location.link_thing(thing_id)
                         res_location = frost.func.update_location(s, thing_id, location.to_json())
-                        print(res_location.status_code, res_location.text)
+                        print('Update location: ', res_location.status_code, res_location.text)
                     
                     datastream_id = frost.func.get_datastream_id(s, thing_id)
                     datastream = frost.models.Datastream(f'Rain high {station.name}', thing_id, 1, 3)

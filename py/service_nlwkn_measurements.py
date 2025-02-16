@@ -83,7 +83,7 @@ with requests.Session() as session:
         else:
             lastEntryTime = None
 
-        # print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
+        print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
 
         url = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{foreign_id}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key={api_key}' 
         
@@ -102,7 +102,8 @@ with requests.Session() as session:
             df.rename(columns={'DatumUTC': 'phenomenonTime', 'Wert': 'result'}, inplace=True)
             df = df.drop(['Datum', 'Grundwasserstandsklasse'], axis=1)
             df['phenomenonTime'] = df['phenomenonTime'].apply(lambda x: x.isoformat())
-            df['result'] = df['result'].apply(lambda x: (mbp - x).round(2))
+            df['result'] = df['result'].apply(lambda x: mbp - x)
+            df['result'] = df['result'].round(2)
 
             if lastEntryTime:
                 df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
@@ -110,7 +111,7 @@ with requests.Session() as session:
                 df_to_post = df[-5:]
 
             res = post_observations(session, datastream, df_to_post)
-            # print(res)
+            print(res)
         # else:
             # print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
 
