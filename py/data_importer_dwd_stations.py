@@ -15,6 +15,7 @@ import frost.models
 import pandas as pd
 
 server = r'http://localhost:8080/FROST-Server/v1.1/'
+
 basePath = Path(r'..\data\dwd')
 #dwd_stations_url = r'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/recent/RR_Stundenwerte_Beschreibung_Stationen.txt'
 rows = []
