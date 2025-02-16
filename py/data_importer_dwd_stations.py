@@ -13,6 +13,7 @@ import frost
 import frost.func
 import frost.models
 import pandas as pd
+from tqdm import tqdm
 
 server = r'http://localhost:8080/FROST-Server/v1.1/'
 
@@ -63,8 +64,6 @@ df['Stationshoehe'] = df['Stationshoehe'].astype(float)
 df['geoBreite'] = df['geoBreite'].astype(float)
 df['geoLaenge'] = df['geoLaenge'].astype(float)
 
-#%%
-
 #json_data = df.to_json(orient='records', indent=4,force_ascii=False)
 dict_data = df.to_dict(orient='records')
 
@@ -79,42 +78,43 @@ try:
         s.headers.update({'content-type': 'application/json; charset=UTF-8'})
         s.headers.update({'Accept': 'application/json'})
 
-        for info in dict_data:
-            foreign_id = info.get('Stations_id')
-            station = frost.models.Thing(info.get('Stationsname'), 'raingauge_station', foreign_id)
+        for info in dict_data: # tqdm(dict_data, desc='Loading dwd stations...', ascii=False, ncols=75):
+            if info.get('geoBreite') and info.get('geoLaenge'):
+                foreign_id = info.get('Stations_id')
+                station = frost.models.Thing(info.get('Stationsname'), 'raingauge_station', foreign_id)
 
-            for key in info.keys():
-                if key not in ['Stations_id','geoBreite','geoLaenge']:
-                    station.add_property([key,info.get(key)])
+                for key in info.keys():
+                    if key not in ['Stations_id','geoBreite','geoLaenge']:
+                        station.add_property([key,info.get(key)])
             
-            if info.get('longitude') and info.get('latitude'):
                 location = frost.models.Location(info.get('Stationsname'), info.get('geoBreite'), info.get('geoLaenge'))
-            else:
-                location = None
 
-            thing_id = frost.func.get_foreign_id(s, foreign_id, 'properties/foreign_id')
+                thing_id = frost.func.get_foreign_id(s, foreign_id, 'properties/foreign_id')
+                # if thing already exist in FROST-Server update thing...
+                if thing_id:
+                    print(f'Update thing: {station.name} (ID: {thing_id})')
+                    # Update...
+                    res_thing = frost.func.update_thing(s, thing_id, station.to_json())
+                    # get url of updated thing from response header
+                    thing_url = res_thing.headers.get('Location')
+                    print(res_thing.status_code, res_thing.text, thing_url)
+                    # Update Location
+                    if location:
+                        location.link_thing(thing_id)
+                        res_location = frost.func.update_location(s, thing_id, location.to_json())
+                        print(res_location.status_code, res_location.text)
+                    
+                    datastream_id = frost.func.get_datastream_id(s, thing_id)
+                    datastream = frost.models.Datastream(f'Rain high {station.name}', thing_id, 1, 3)
+                    datastream.unitOfMeasurement['name'] = 'millimeter'
+                    datastream.unitOfMeasurement['symbol'] = 'mm'
 
-            if thing_id:
-                print(f'Update thing: {station.name} (ID: {thing_id})')
-                # Update...
-                res_thing = frost.func.update_thing(s, thing_id, station.to_json())
-                # get url of updated thing from response header
-                thing_url = res_thing.headers.get('Location')
-                print(res_thing.status_code, res_thing.text, thing_url)
-                # Update Location
-                if location:
-                    location.link_thing(thing_id)
-                    res_location = frost.func.update_location(s, thing_id, location.to_json())
-                    print(res_location.status_code, res_location.text)
+                    if datastream_id:
+                        res_datastream = frost.func.update_datastream(s, thing_id, datastream.to_json())
+                    else:
+                        res_datastream = frost.func.add_datastream(s, thing_id, datastream.to_json())
                 
-                datastream_id = frost.func.get_datastream_id(s, thing_id)
-                datastream = frost.models.Datastream(f'Rain high {station.name}', thing_id, 1, 3)
-                datastream.unitOfMeasurement['name'] = 'millimeter'
-                datastream.unitOfMeasurement['symbol'] = 'mm'
-
-                if datastream_id:
-                    res_datastream = frost.func.update_datastream(s, thing_id, datastream.to_json())
-
+                # if thing doesn't exist in FROST-Server add thing
                 else:
                     print(f'Add thing: {station.name}')
                     r = frost.func.add_thing(s, station.to_json())
@@ -136,6 +136,7 @@ try:
                         datastream.unitOfMeasurement['symbol'] = 'mm'
 
                         r_datastream = frost.func.add_datastream(s, thing_id, datastream.to_json())
+                        print(r_datastream)
 
 except requests.exceptions.HTTPError as http_err:
     print(f'HTTP error occurred: {http_err}')

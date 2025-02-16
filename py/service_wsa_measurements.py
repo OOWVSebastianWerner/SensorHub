@@ -18,9 +18,6 @@ from tqdm import tqdm
 #------------------------------------------------------------------------------
 #%%
 
-# basePath = Path(r'..\data')
-# levelsPath = Path(basePath / r'wsa\levels')
-
 baseUrl_wsa = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/'
 
 qry_things = (
