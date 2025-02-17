@@ -13,7 +13,6 @@ import frost
 import frost.func
 import frost.models
 import pandas as pd
-from tqdm import tqdm
 
 server = r'http://localhost:8080/FROST-Server/v1.1/'
 
