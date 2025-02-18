@@ -1,5 +1,5 @@
 services:
-  web:
+  frost-server:
     image: fraunhoferiosb/frost-server-http:latest
     # image: fraunhoferiosb/frost-server:latest
     environment:
@@ -9,7 +9,7 @@ services:
       - http_cors_enable=true
       - http_cors_allowed_origins=*
       - persistence_db_driver=org.postgresql.Driver
-      - persistence_db_url=jdbc:postgresql://database:5432/sensorthings
+      - persistence_db_url=jdbc:postgresql://frost-db:5432/sensorthings
       - persistence_db_username=sensorthings
       - persistence_db_password=ChangeMe
       - persistence_autoUpdateDatabase=true
@@ -17,10 +17,10 @@ services:
       - 8080:8080
       # - 1883:1883
     depends_on:
-      database:
+      frost-db:
         condition: service_healthy
 
-  database:
+  frost-db:
     image: postgis/postgis:14-3.2-alpine
     ports:
       - 5432:5432
@@ -36,10 +36,21 @@ services:
       timeout: 5s
       retries: 5
   
-  dashboard:
+  grafana-dashboard:
     image: grafana/grafana:latest
     ports:
      - 3000:3000
+
+  dash-dashboard:
+    image: frost_dash:latest
+    ports:
+     - 8050:8080
+    environment:
+      - URL=http://frost-server
+      - PORT=8080
+    depends_on:
+      frost-server: 
+        condition: service_started
 
 volumes:
     postgis_volume: 
