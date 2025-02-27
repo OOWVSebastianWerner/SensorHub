@@ -2,10 +2,11 @@
 #%%
 import csv
 import json
+import pytz
 import requests
 from pathlib import Path
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from frost import config
 import zipfile
 import io
@@ -88,64 +89,6 @@ if __name__ == "__main__":
 
 ############### IMPORT of the DATA to the Frost-Server  #######################
 
-
-#def get_data():
-#%%
-for folder in os.listdir(output_dir):
-    folder_path = os.path.join(output_dir, folder)
-    
-    # Überprüfen, ob es ein Verzeichnis mit 5-stelliger Struktur ist
-    if os.path.isdir(folder_path) and folder.isdigit() and len(folder) == 5:
-        print(f"Processing folder: {folder}")
-
-        txt_files = [f for f in os.listdir(folder_path) if f.startswith('produkt_rr_stunde') and f.endswith('.txt')]
-
-        if txt_files:
-# Falls mehrere Dateien passen, z.B. bei historischen Daten, nehmen wir die neuste (nach Alphabet sortiert)
-            txt_files.sort()
-            txt_file_path = os.path.join(folder_path, txt_files[-1])  # Die letzte in der sortierten Liste
-            print(f"Reading data from {txt_file_path}")
-
-            # Datei öffnen und einlesen
-            with open(txt_file_path, 'r', encoding='latin1') as file:
-                reader = csv.reader(file, delimiter=';')
-                rows = list(reader)
-
-                # Header und Metadaten überspringen
-                data_rows = rows[:20]
-                
-                # Nur die letzten 12 Zeilen
-                last_12_rows = data_rows[-12:]
-
-                print(f"Last 12 entries for station {folder}:")
-                for row in last_12_rows:
-                    print(row)
-        else:
-            print(f"No .txt file found in {folder_path}")
-
-#%%
-
-json_data=[]
-
-# Datum und Wert aus den letzten 12 Zeilen extrahieren und in JSON umwandeln
-for row in last_12_rows:
-    datum = row[1].strip()  # MESS_DATUM
-    wert = row[3].strip()   # RS
-    
-    # JSON-Format anpassen
-    json_entry = {
-        "phenomenonTime": datum,
-        "result": wert
-    }
-    json_data.append(json_entry)
-
-#print(json_data)
-# Ausgabe der JSON-Daten
-json_output = json.dumps(json_data, indent=4)
-#print(json_output)
-
-
-
 #### POST da data
 
 
@@ -164,6 +107,7 @@ def post_observations(session, datastream, data):
         response = session.post(f'{datastream}/Observations', json=row_dict)
     responses.append((response.status_code, response.text))
     return responses
+
 
 
 
@@ -206,9 +150,73 @@ with requests.Session() as session:
             lastEntryTime = datastream_res['phenomenonTime'].split('/')[1]
         else:
             lastEntryTime = None
+##### Daten Holen
 
+        folder_path = output_dir+"\\"+str(uuid).zfill(5)
+        # Überprüfen, ob es ein Verzeichnis mit 5-stelliger Struktur ist
 
+        print(f"Processing folder: {folder_path}")
 
+        txt_files = [f for f in os.listdir(folder_path) if f.startswith('produkt_rr_stunde') and f.endswith('.txt')]
 
+        if txt_files:
+# Falls mehrere Dateien passen, z.B. bei historischen Daten, nehmen wir die neuste (nach Alphabet sortiert)
+            txt_files.sort()
+            txt_file_path = os.path.join(folder_path, txt_files[-1])  # Die letzte in der sortierten Liste
+            print(f"Reading data from {txt_file_path}")
+
+            # Datei öffnen und einlesen
+            with open(txt_file_path, 'r', encoding='latin1') as file:
+                reader = csv.reader(file, delimiter=';')
+                rows = list(reader)
+
+                # Header und Metadaten überspringen
+                #data_rows = rows[:-20]
+                
+                # Nur die letzten 12 Zeilen
+                last_12_rows = rows[-12:]
+
+                print(f"Last 12 entries for station {folder_path}:")
+                for row in last_12_rows:
+                    print(row)
+                else:
+                    print(f"No .txt file found in {folder_path}")
+
+                json_data=[]
+
+                # Datum und Wert aus den letzten 12 Zeilen extrahieren und in JSON umwandeln
+                for row in last_12_rows:
+                    datum = row[1].strip()  # MESS_DATUM
+                    wert = float(row[3].strip())   # RS
+                    
+                    datum_dt = datetime.strptime(datum, '%Y%m%d%H')
+
+                    datum_utc = datum_dt.replace(tzinfo=pytz.UTC)
+                    datum_iso = datum_utc.isoformat() 
+
+                    # JSON-Format anpassen
+                    json_entry = {
+                        "phenomenonTime": datum_iso,
+                        "result": wert
+                    }
+                    json_data.append(json_entry)
+
+                #print(json_data)
+                # Ausgabe der JSON-Daten
+                #dataframe = json.dumps(json_data, indent=4)
+
+                df = pd.DataFrame(json_data)
+                #df['phenomenonTime']=df['phenomenonTime'].apply(lambda x: str(datetime.fromtimestamp(int(x), tz=utc)))
+                #df['phenomenonTime']=df['phenomenonTime'].apply(lambda x: datetime.strptime(x, '%Y%m%d%H').replace(tzinfo=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S'))
+                #df['result']=df['result'].apply(lambda x: float(x.strip()))
+
+                if lastEntryTime:
+                    df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
+                else:
+                    df_to_post = df[-5:]
+                
+                
+                r = post_observations(session, datastream, df_to_post)
+                print(r)
 
 # %%
