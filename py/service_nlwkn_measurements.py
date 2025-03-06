@@ -9,6 +9,7 @@
 import requests
 from pathlib import Path
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from frost import config
@@ -24,7 +25,7 @@ api_key = '9dc05f4e3b4a43a9988d747825b39f43'
 baseUrl_nlwkn = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key={api_key}'
 
 PAT_ID = 536
-tage = -7
+tage = -5
 utc = ZoneInfo('UTC')
 
 qry_things = (
@@ -83,7 +84,7 @@ with requests.Session() as session:
         else:
             lastEntryTime = None
 
-        print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
+        # print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
 
         url = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{foreign_id}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key={api_key}' 
         
@@ -97,6 +98,8 @@ with requests.Session() as session:
                             .get('Pegelstaende')
             
             df = pd.DataFrame(meas)
+            df = df.replace(-777, np.nan)
+            df = df.dropna()
 
             df['DatumUTC'] = df['DatumUTC'].apply(lambda x: datetime.fromtimestamp(int(x.split('/Date(')[-1][0:-2])/1000, tz=utc))
             df.rename(columns={'DatumUTC': 'phenomenonTime', 'Wert': 'result'}, inplace=True)
@@ -110,9 +113,10 @@ with requests.Session() as session:
             else:
                 df_to_post = df[-5:]
 
-            res = post_observations(session, datastream, df_to_post)
-            print(res)
-        # else:
-            # print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
+            if not df_to_post.empty:
+                res = post_observations(session, datastream, df_to_post)
+                # print(res)
+        else:
+            print(f'Something went wrong! Status{measurements_res.status_code} - {measurements_res.text}')
 
 # %%

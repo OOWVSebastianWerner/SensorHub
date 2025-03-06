@@ -6,26 +6,28 @@ import plotly.express as px
 import pandas as pd
 import geopandas as gpd
 import requests
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 import os
 import json
 #from frost import config
 import dash_bootstrap_components as dbc
 
-load_dotenv('..\\..\\.env')
+#load_dotenv('..\\..\\.env')
 
 #%%
-frost_baseURL = os.getenv('baseURL')
+frost_URL = os.getenv('URL')
+frost_port = os.getenv('PORT')
+frost_api = f'{frost_URL}:{frost_port}/FROST-Server/v1.1/'
 
-all_things = f'{frost_baseURL}Things?$select=@iot.id,name,properties'
-all_locations = f'{frost_baseURL}Things?$select=@iot.id,name,properties/station_type&$expand=Locations($select=location)&$top=10000&$resultFormat=GeoJSON'
-all_datastreams = f'{frost_baseURL}Datastreams?$select=@iot.id,name,unitOfMeasurement'
+all_things = f'{frost_api}Things?$select=@iot.id,name,properties'
+all_locations = f'{frost_api}Things?$select=@iot.id,name,properties/station_type&$expand=Locations($select=location)&$top=10000&$resultFormat=GeoJSON'
+all_datastreams = f'{frost_api}Datastreams?$select=@iot.id,name,unitOfMeasurement'
 #all_observations = f'{frost_baseURL}Observations?$select=@iot.id,phenomenonTime,result'
 # observations_url = f'{frost_baseURL}Thing(663)?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id'
 
 #'?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id'
 
-one_datastream = f'{frost_baseURL}Things(1286)?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id' #/Datastreams(2)/Observations'
+one_datastream = f'{frost_api}Things(1286)?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id' #/Datastreams(2)/Observations'
 
 def get_data(session, url):
     """Get data from FROST-Server."""
@@ -34,7 +36,7 @@ def get_data(session, url):
     
     while '@iot.nextLink' in data.keys():
         
-        nextLink = data['@iot.nextLink']
+        nextLink = data['@iot.nextLink'].replace('http://localhost:8080', f'{frost_URL}:{frost_port}')
         next_data = session.get(nextLink).json()
 
         data['value'] += next_data['value']
@@ -58,8 +60,8 @@ with requests.session() as session:
     data_meas_json = get_data(session, one_datastream)
 
 
-# with open(r'data\locations.geojson', 'w') as loc_geojson:
-#     loc_geojson.write(json.dumps(locations))
+with open(r'data\locations.geojson', 'w') as loc_geojson:
+    loc_geojson.write(json.dumps(locations))
 
 geo_df = gpd.read_file(r'data\locations.geojson')
 
@@ -149,7 +151,7 @@ def update_graph(clickData):
     print(clickData)
     # if clickData:
     thing_id = clickData['points'][0]['customdata'][0]
-    url = f'{frost_baseURL}Things({thing_id})?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id'
+    url = f'{frost_api}Things({thing_id})?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id'
     with requests.session() as session2:
         data = get_data(session2, url)
 
@@ -170,4 +172,4 @@ def update_graph(clickData):
 #     return px.line(dff, x='year', y='pop')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0",port="8080",debug=True)
