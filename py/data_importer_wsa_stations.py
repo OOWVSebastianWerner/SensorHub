@@ -7,16 +7,19 @@
 # created:      07.11.2024
 #------------------------------------------------------------------------------
 #%%
+import os
+from dotenv import load_dotenv
 import requests
 import frost
 import frost.func
 import frost.models
 from tqdm import tqdm
 
+load_dotenv
 #------------------------------------------------------------------------------
 #--- global vars
 #------------------------------------------------------------------------------
-stationsUrl = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json'
+stationsUrl = os.getenv('WSA_STATIONS_URL')
 
 #------------------------------------------------------------------------------
 #--- main

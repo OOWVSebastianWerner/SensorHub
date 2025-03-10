@@ -7,20 +7,24 @@
 # created:      04.02.2025
 #------------------------------------------------------------------------------
 #%%
+import os
+from dotenv import load_dotenv
 import requests
 import frost
 import frost.func
 import frost.models
 from tqdm import tqdm
 
+load_dotenv
 #------------------------------------------------------------------------------
 #--- global vars
 
 # Public API Key
-api_key = '9dc05f4e3b4a43a9988d747825b39f43'
+api_key = os.getenv('NLWKN_API_KEY')
+nlwkn_stations_url = os.getenv('NLWKN_STATIONS_URL')
 
-stationsUrl = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key={api_key}'
-
+stationsUrl = f'{nlwkn_stations_url}?key={api_key}'
+#%%
 # values that will be added to properties of thing
 property_keys = [
     'Betreiber',

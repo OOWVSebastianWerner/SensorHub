@@ -4,7 +4,7 @@
 #%%
 import requests
 import json
-from config import endpoints
+from frost import config
 
 Sensors = [
     {
@@ -39,15 +39,15 @@ with requests.Session() as s:
 
     for i in Sensors:
         # check if entry already exists
-        f = s.get(f"{endpoints['sensors']}?$filter=name eq '{i['name']}'").json()
+        f = s.get(f"{config.endpoints['sensors']}?$filter=name eq '{i['name']}'").json()
         if not f['value']:
-            r = s.post(f'{endpoints['sensors']}', json.dumps(i, default=str))
+            r = s.post(f'{config.endpoints['sensors']}', json.dumps(i, default=str))
             print(r.text)
 
 
     for j in ObservedProperties:
-        check_if_exists = s.get(f"{endpoints['observedProperties']}?$filter=name eq '{j['name']}'").json()
+        check_if_exists = s.get(f"{config.endpoints['observedProperties']}?$filter=name eq '{j['name']}'").json()
         if not check_if_exists['value']:
-            r = s.post(f'{endpoints['observedProperties']}', json.dumps(j, default=str))
+            r = s.post(f'{config.endpoints['observedProperties']}', json.dumps(j, default=str))
             print(r.text)
 # %%

@@ -4,10 +4,10 @@
 #@Todo: refactor to dotenv
 #%%
 import os
-from dotenv import load_dotenv
-load_dotenv('../../.env', override=True)
 
-baseURL = os.getenv('FROST_URL')
+# baseURL = 'http://frost-server:8080/FROST-Server/v1.1/'
+baseURL = os.getenv('FROST_SERVER_URL')
+
 
 endpoints = {
     'things': f'{baseURL}Things',

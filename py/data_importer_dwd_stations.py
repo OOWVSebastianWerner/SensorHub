@@ -7,75 +7,72 @@
 # created:      20.11.2024
 #------------------------------------------------------------------------------
 #%%
+import os
+from dotenv import load_dotenv
 import requests
-from pathlib import Path
 import frost
 import frost.func
 import frost.models
 import pandas as pd
 
-server = r'http://localhost:8080/FROST-Server/v1.1/'
+load_dotenv
 
-basePath = Path(r'..\data\dwd')
-#dwd_stations_url = r'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/recent/RR_Stundenwerte_Beschreibung_Stationen.txt'
-rows = []
-file_path = r'..\data\dwd\stations.txt'
-
-with open(file_path, "r", encoding="latin1") as f:
-    for line in f:
-        # Zeile in Felder aufteilen
-        parts = line.split()
-
-        # Relevante Felder extrahieren
-        if len(parts) >= 9:
-            stations_id = parts[0]
-            von_datum = parts[1]
-            bis_datum = parts[2]
-            stationshoehe = parts[3]
-            geobreite = parts[4]
-            geolaenge = parts[5]
-            bundesland = parts[-2]
-            abgabe = parts[-1]
-            
-            # Stationsname rekonstruiert aus allen Feldern zwischen `geolaenge` und `bundesland`
-            stationsname = " ".join(parts[6:-2])
-            
-            rows.append([
-                stations_id, von_datum, bis_datum, stationshoehe, geobreite, 
-                geolaenge, stationsname, bundesland, abgabe
-            ])
-
-
-spaltennamen = [
-     "Stations_id", "von_datum", "bis_datum", "Stationshoehe", "geoBreite", 
-     "geoLaenge", "Stationsname", "Bundesland", "Abgabe"
-]
-
-#%%
-
-df = pd.DataFrame(rows[2:], columns=spaltennamen)
-#df = df.drop(0)
-
-df['Stations_id'] = df['Stations_id'].astype(int)
-df['von_datum'] = df['von_datum'].astype(int)
-df['bis_datum'] = df['bis_datum'].astype(int)
-df['Stationshoehe'] = df['Stationshoehe'].astype(float)
-df['geoBreite'] = df['geoBreite'].astype(float)
-df['geoLaenge'] = df['geoLaenge'].astype(float)
-
-#json_data = df.to_json(orient='records', indent=4,force_ascii=False)
-dict_data = df.to_dict(orient='records')
-
-#print(dict_data)
-
-
+dwd_stations_url = os.getenv('DWD_STATIONS_URL')
 # %%
 
 try:
     with requests.Session() as s:
-    
         s.headers.update({'content-type': 'application/json; charset=UTF-8'})
         s.headers.update({'Accept': 'application/json'})
+        
+        # get stations txt-file
+        dwd_stations = s.get(dwd_stations_url)
+
+        # lines from text-file into list
+        lines = dwd_stations.content.decode('cp1252').split('\r\n')
+        
+        station_rows = []
+        
+        for line in lines:
+
+            parts = line.split()
+
+            if parts:
+                # extract fields
+                stations_id = parts[0]
+                von_datum = parts[1]
+                bis_datum = parts[2]
+                stationshoehe = parts[3]
+                geobreite = parts[4]
+                geolaenge = parts[5]
+                bundesland = parts[-2]
+                abgabe = parts[-1]
+                stationsname = " ".join(parts[6:-2])
+                
+                station_rows.append([
+                    stations_id, von_datum, bis_datum, stationshoehe, geobreite, 
+                    geolaenge, stationsname, bundesland, abgabe
+                ])
+
+        spaltennamen = [
+            "Stations_id", "von_datum", "bis_datum", "Stationshoehe", "geoBreite", 
+            "geoLaenge", "Stationsname", "Bundesland", "Abgabe"
+        ]
+
+        df = pd.DataFrame(station_rows[2:], columns=spaltennamen)
+
+        df['Stations_id'] = df['Stations_id'].astype(int)
+        df['von_datum'] = df['von_datum'].astype(int)
+        df['bis_datum'] = df['bis_datum'].astype(int)
+        df['Stationshoehe'] = df['Stationshoehe'].astype(float)
+        df['geoBreite'] = df['geoBreite'].astype(float)
+        df['geoLaenge'] = df['geoLaenge'].astype(float)
+
+        df = df[df['Abgabe']== 'Frei']
+        # Limit to stations that have data in 2025
+        df = df[df['bis_datum'] > 20250000]
+
+        dict_data = df.to_dict(orient='records')
 
         for info in dict_data: # tqdm(dict_data, desc='Loading dwd stations...', ascii=False, ncols=75):
             if info.get('geoBreite') and info.get('geoLaenge'):

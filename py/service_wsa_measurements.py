@@ -20,6 +20,8 @@ from tqdm import tqdm
 
 baseUrl_wsa = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/'
 
+measURL_wsa = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json?includeTimeseries=true&includeCurrentMeasurement=true'
+
 qry_things = (
     f"{config.endpoints['things']}"
     "?$filter=properties/station_type eq 'water_station'"
@@ -51,17 +53,26 @@ with requests.Session() as session:
     # FROST-Server limits requests to 100 entries by default
     # as long as there is '@iot.nextLink' present in things, do another request 
     # and combine it with things
-    while '@iot.nextLink' in things.keys():
+    # while '@iot.nextLink' in things.keys():
         
-        nextLink = things['@iot.nextLink']
-        next_things = session.get(nextLink).json()
+    #     nextLink = things['@iot.nextLink']
+    #     next_things = session.get(nextLink).json()
 
-        things['value'] += next_things['value']
+    #     things['value'] += next_things['value']
 
-        if '@iot.nextLink' in next_things.keys():
-            things['@iot.nextLink'] = next_things['@iot.nextLink']
-        else:
-            things.pop('@iot.nextLink')
+    #     if '@iot.nextLink' in next_things.keys():
+    #         things['@iot.nextLink'] = next_things['@iot.nextLink']
+    #     else:
+    #         things.pop('@iot.nextLink')
+
+    curr_measurments = session.get(measURL_wsa)
+        
+    if curr_measurments.status_code == 200 and curr_measurments.json():
+        # create DataFrame
+        df = pd.DataFrame(curr_measurments.json())
+        df_meas = df[['uuid','timeseries']]
+        df_meas.loc[:,'result'] = df_meas['timeseries'].apply(lambda x: x[0].get('currentMeasurement').get('value'))
+        df_meas.loc[:,'phenomenonTime'] = df_meas['timeseries'].apply(lambda x: x[0].get('currentMeasurement').get('timestamp'))
 
 
     for thing in tqdm(things['value'], desc='Loading observations for stations...', ascii=False, ncols=75):
@@ -71,28 +82,28 @@ with requests.Session() as session:
         # @TODO: add filter/check to get the correct datastream if there is more than one.
         datastream = thing['Datastreams'][0]['@iot.selfLink']
 
-        datastream_res = session.get(f'{datastream}').json()
-        # get last phenomenonTime in Datastream
-        if 'phenomenonTime' in datastream_res.keys():
-            lastEntryTime = datastream_res['phenomenonTime'].split('/')[1]
-        else:
-            lastEntryTime = None
+        # datastream_res = session.get(f'{datastream}').json()
+        # # get last phenomenonTime in Datastream
+        # if 'phenomenonTime' in datastream_res.keys():
+        #     lastEntryTime = datastream_res['phenomenonTime'].split('/')[1]
+        # else:
+        #     lastEntryTime = None
+        if not df_meas[df_meas['uuid'] == uuid].empty:
+            meas_dict = {
+                'phenomenonTime': df_meas[df_meas['uuid'] == uuid]['phenomenonTime'].iat[0],
+                'result': float(df_meas[df_meas['uuid'] == uuid]['result'].iat[0])
+            }
 
-        # print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
+            session.post(f'{datastream}/Observations', json=meas_dict)
         
-        response = session.get(f'{baseUrl_wsa}stations/{uuid}/W/measurements.json')
-        
-        if response.status_code == 200 and response.json():
-            # create DataFrame
-            df = pd.DataFrame(response.json())
-            df.rename(columns={'timestamp': 'phenomenonTime', 'value': 'result'}, inplace=True)
+            # df.rename(columns={'timestamp': 'phenomenonTime', 'value': 'result'}, inplace=True)
 
-            if lastEntryTime:
-                df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
-            else:
-                df_to_post = df[-5:]
+            # if lastEntryTime:
+            #     df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
+            # else:
+            #     df_to_post = df[-5:]
             
-            r = post_observations(session, datastream, df_to_post)
+            # r = post_observations(session, datastream, df_to_post)
             # print(r)
 
 # %%

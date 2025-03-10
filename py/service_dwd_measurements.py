@@ -108,10 +108,6 @@ def post_observations(session, datastream, data):
     responses.append((response.status_code, response.text))
     return responses
 
-
-
-
-
 #%%
 
 with requests.Session() as session:
