@@ -1,6 +1,10 @@
 # SensorHub
 
-SensorHub Repository.
+An implementation of the [FROST Server](https://www.iosb.fraunhofer.de/de/projekte-produkte/frostserver.html) in combination with Airflow for recieving data from public
+Web-APIs. 
+
+## Install
+... tbd
 
 ## DataSources
 
