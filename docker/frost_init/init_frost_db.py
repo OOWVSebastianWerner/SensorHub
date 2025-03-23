@@ -4,7 +4,16 @@
 #%%
 import requests
 import json
-from frost import config
+
+baseURL = 'http://frost-server:8080/FROST-Server/v1.1/'
+
+endpoints = {
+    'things': f'{baseURL}Things',
+    'locations': f'{baseURL}Locations',
+    'sensors': f'{baseURL}Sensors',
+    'observedProperties': f'{baseURL}ObservedProperties',
+    'datastreams': f'{baseURL}Datastreams'
+}
 
 Sensors = [
     {
@@ -39,15 +48,14 @@ with requests.Session() as s:
 
     for i in Sensors:
         # check if entry already exists
-        f = s.get(f"{config.endpoints['sensors']}?$filter=name eq '{i['name']}'").json()
-        if not f['value']:
-            r = s.post(f'{config.endpoints['sensors']}', json.dumps(i, default=str))
+        sensor_exists = s.get(f"{endpoints['sensors']}?$filter=name eq '{i['name']}'").json()
+        if not sensor_exists['value']:
+            r = s.post(f"{endpoints['sensors']}", json.dumps(i, default=str))
             print(r.text)
 
-
     for j in ObservedProperties:
-        check_if_exists = s.get(f"{config.endpoints['observedProperties']}?$filter=name eq '{j['name']}'").json()
-        if not check_if_exists['value']:
-            r = s.post(f'{config.endpoints['observedProperties']}', json.dumps(j, default=str))
+        ObservedProperty_exists = s.get(f"{endpoints['observedProperties']}?$filter=name eq '{j['name']}'").json()
+        if not ObservedProperty_exists['value']:
+            r = s.post(f"{endpoints['observedProperties']}", json.dumps(j, default=str))
             print(r.text)
 # %%

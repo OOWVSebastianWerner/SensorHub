@@ -86,6 +86,8 @@ x-airflow-common:
       condition: service_healthy
     postgres:
       condition: service_healthy
+    frost-server: 
+      condition: service_started
 
 services:
   postgres:
@@ -322,11 +324,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  
+
+  frost-init:
+    image: frost_init:latest
+    depends_on:
+      frost-server:
+        condition: service_started
+
   grafana-dashboard:
     image: grafana/grafana:latest
     ports:
      - 3000:3000
+    depends_on:
+      frost-server: 
+        condition: service_started
 
   dash-dashboard:
     image: frost_dash:latest

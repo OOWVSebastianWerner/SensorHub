@@ -5,6 +5,7 @@ import numpy as np
 import zipfile
 import io
 import os
+import shutil
 import pytz
 import csv
 
@@ -101,10 +102,9 @@ with DAG(
 
         try:
             # print(f"Downloading {file_name} from {url}")  
-            response = requests.get(url)  # Anfrage an den Zielserver
-            response.raise_for_status()  
-
-            # Zip-Datei in den Arbeitsspeicher laden
+            response = requests.get(url)
+            response.raise_for_status()
+            
             with zipfile.ZipFile(io.BytesIO(response.content)) as z:
                 z.extractall(os.path.join(output_dir, str(foreign_id).zfill(5)))
                 print(f"Extracted {file_name} to {output_dir}/{foreign_id}")
@@ -140,46 +140,48 @@ with DAG(
                     
                     folder_path = os.path.join(output_dir,str(uuid).zfill(5))
 
-                    txt_files = [f for f in os.listdir(folder_path) if f.startswith('produkt_rr_stunde') and f.endswith('.txt')]
-                    
-                    if txt_files:
-                        # if more than one file matches e.g. because of historic data we'll take the newest (aplhabeticly sorted)
-                        txt_files.sort()
-                        txt_file_path = os.path.join(folder_path, txt_files[-1])  # Select last file
+                    if os.path.exists(folder_path):
+                        txt_files = [f for f in os.listdir(folder_path) if f.startswith('produkt_rr_stunde') and f.endswith('.txt')]
                         
-                        json_data=[]
+                        if txt_files:
+                            # if more than one file matches e.g. because of historic data we'll take the newest (aplhabeticly sorted)
+                            txt_files.sort()
+                            txt_file_path = os.path.join(folder_path, txt_files[-1])  # Select last file
+                            
+                            json_data=[]
 
-                        with open(txt_file_path, 'r', encoding='latin1') as file:
-                            reader = csv.reader(file, delimiter=';')
-                            rows = list(reader)
+                            with open(txt_file_path, 'r', encoding='latin1') as file:
+                                reader = csv.reader(file, delimiter=';')
+                                rows = list(reader)
 
-                            # Extract last 12 rows = last 12 values
-                            for row in rows[-12:]:
-                                datum = row[1].strip()  # MESS_DATUM
-                                wert = float(row[3].strip())   # RS
-                                
-                                datum_dt = datetime.strptime(datum, '%Y%m%d%H')
+                                # Extract last 12 rows = last 12 values
+                                for row in rows[-12:]:
+                                    datum = row[1].strip()  # MESS_DATUM
+                                    wert = float(row[3].strip())   # RS
+                                    
+                                    datum_dt = datetime.strptime(datum, '%Y%m%d%H')
 
-                                datum_utc = datum_dt.replace(tzinfo=pytz.UTC)
-                                datum_iso = datum_utc.isoformat() 
+                                    datum_utc = datum_dt.replace(tzinfo=pytz.UTC)
+                                    datum_iso = datum_utc.isoformat() 
 
-                                # JSON-Format anpassen
-                                json_entry = {
-                                    "phenomenonTime": datum_iso,
-                                    "result": wert
-                                }
-                                json_data.append(json_entry)
+                                    json_entry = {
+                                        "phenomenonTime": datum_iso,
+                                        "result": wert
+                                    }
+                                    json_data.append(json_entry)
+                            
+                            df = pd.DataFrame(json_data)
+
+                            if lastEntryTime:
+                                df_to_post = df[df['phenomenonTime'] > lastEntryTime]
+                            else:
+                                df_to_post = df
+                            
+                            if not df_to_post.empty:
+                                res = post_observations(session, datastream, df_to_post)
                         
-                        df = pd.DataFrame(json_data)
+                        shutil.rmtree(folder_path)
 
-                        if lastEntryTime:
-                            df_to_post = df[df['phenomenonTime'] > lastEntryTime]
-                        else:
-                            df_to_post = df
-                        
-                        if not df_to_post.empty:
-                            res = post_observations(session, datastream, df_to_post)
-                       
     # task: load_things
     task_get_things = PythonOperator(
         task_id = 'task_get_things',

@@ -165,6 +165,23 @@ def update_datastream(session, thing_id, json_data):
         return response
 
 # ------------------------------------------------------------------------------
+# delete items
+# ------------------------------------------------------------------------------
+def delete_thing(session, thing_id):
+    """Deletes a thing and all dependend datastreams and observations of that thing from FROST Server."""
+    url = f'{endpoints['things']}({thing_id})'
+    response = session.delete(url)
+
+    return response
+
+def delete_datastream(session, datastream_id):
+    """Deletes a datastream and all observations of that datastream from FROST Server."""
+    url = f'{endpoints['datastreams']}({datastream_id})'
+    response = session.delete(url)
+
+    return response
+
+# ------------------------------------------------------------------------------
 # helper functions
 # ------------------------------------------------------------------------------
 def save_response_as_file(response, filename):

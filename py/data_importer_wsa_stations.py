@@ -15,10 +15,11 @@ import frost.func
 import frost.models
 from tqdm import tqdm
 
-load_dotenv
 #------------------------------------------------------------------------------
-#--- global vars
+#--- global 
 #------------------------------------------------------------------------------
+load_dotenv(r'..\.env')
+
 stationsUrl = os.getenv('WSA_STATIONS_URL')
 
 #------------------------------------------------------------------------------
@@ -57,9 +58,6 @@ try:
                         # print(f'Update thing: {station.name} (ID: {thing_id})')
                         # Update...
                         res_thing = frost.func.update_thing(s, thing_id, station.to_json())
-                        # get url of updated thing from response header
-                        thing_url = res_thing.headers.get('Location')
-                        # print(res_thing.status_code, res_thing.text, thing_url)
                         # Update Location
                         location.link_thing(thing_id)
                         res_location = frost.func.update_location(s, thing_id, location.to_json())
@@ -81,7 +79,7 @@ try:
 
                         if r.status_code == 201:
                             # Get thing URL from response header
-                            thing_url = r.headers.get('Location')
+                            thing_url = r.headers.get('Location').replace('http://frost-server:8080', 'http://localhost:8080')
                             # extract thing id from url
                             thing_id = thing_url.split('/')[-1].split('(')[-1][:-1]
                             

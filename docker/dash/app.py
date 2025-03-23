@@ -22,12 +22,8 @@ frost_api = f'{frost_URL}:{frost_port}/FROST-Server/v1.1/'
 all_things = f'{frost_api}Things?$select=@iot.id,name,properties'
 all_locations = f'{frost_api}Things?$select=@iot.id,name,properties/station_type&$expand=Locations($select=location)&$top=10000&$resultFormat=GeoJSON'
 all_datastreams = f'{frost_api}Datastreams?$select=@iot.id,name,unitOfMeasurement'
-#all_observations = f'{frost_baseURL}Observations?$select=@iot.id,phenomenonTime,result'
-# observations_url = f'{frost_baseURL}Thing(663)?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id'
 
-#'?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id'
-
-one_datastream = f'{frost_api}Things(1286)?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id' #/Datastreams(2)/Observations'
+one_datastream = f'{frost_api}Things(1286)?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id' 
 
 def get_data(session, url):
     """Get data from FROST-Server."""
@@ -36,7 +32,7 @@ def get_data(session, url):
     
     while '@iot.nextLink' in data.keys():
         
-        nextLink = data['@iot.nextLink'].replace('http://localhost:8080', f'{frost_URL}:{frost_port}')
+        nextLink = data['@iot.nextLink']
         next_data = session.get(nextLink).json()
 
         data['value'] += next_data['value']
@@ -54,16 +50,14 @@ with requests.session() as session:
     locations = session.get(all_locations).json()
     
     things = get_data(session, all_things)
-    # datastreams = get_data(session, all_datastreams)
-    # observations = get_data(session, observations_url)
 
     data_meas_json = get_data(session, one_datastream)
 
 
-with open(r'data\locations.geojson', 'w') as loc_geojson:
+with open(r'locations.geojson', 'w') as loc_geojson:
     loc_geojson.write(json.dumps(locations))
 
-geo_df = gpd.read_file(r'data\locations.geojson')
+geo_df = gpd.read_file(r'locations.geojson')
 
 df_meas = pd.DataFrame(data_meas_json['Datastreams'][0]['Observations'])
 #%%
@@ -108,9 +102,6 @@ app.layout = [
         color="primary",
         dark=True,
         ),
-        # dcc.Link('Home', href='/'),
-        # dcc.Link('Graph', href='/graph'),
-        # dcc.Link('Table', href='/table'),
         
         html.Div(id='page-content')
         ] , className='container' 
@@ -121,7 +112,6 @@ app.layout = [
 index_page = html.Div(id='page-content', children=[
                         dcc.Graph(id='map-graph',figure=fig2),
                         dcc.Graph(id='map',figure=fig)
-    # dcc.Dropdown(geo_df.name.unique(), 'Canada', id='dropdown-selection'),    
 ])
 
 # table-page
@@ -148,8 +138,7 @@ def display_page(pathname):
     Output('map-graph','figure'),
     Input('map','clickData'))
 def update_graph(clickData):
-    print(clickData)
-    # if clickData:
+    # print(clickData)
     thing_id = clickData['points'][0]['customdata'][0]
     url = f'{frost_api}Things({thing_id})?$select=@iot.id,name&$expand=Datastreams($expand=Observations($select=phenomenonTime,result))&$select=@iot.id'
     with requests.session() as session2:
@@ -160,16 +149,6 @@ def update_graph(clickData):
     fig2 = px.line(df, 'phenomenonTime','result', title=clickData['points'][0]['customdata'][1])
 
     return fig2
-    # else:
-    #     return "Click a Point in the map."
-
-# @callback(
-#     Output('graph-content', 'figure'),
-#     Input('dropdown-selection', 'value')
-# )
-# def update_graph(value):
-#     dff = df[df.country==value]
-#     return px.line(dff, x='year', y='pop')
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0",port="8080",debug=True)

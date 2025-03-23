@@ -6,21 +6,21 @@
 # created:      07.11.2024
 #------------------------------------------------------------------------------
 #%%
+import os
+from dotenv import load_dotenv
 import requests
-from pathlib import Path
 import pandas as pd
-from datetime import datetime
 from frost import config
 from tqdm import tqdm
 
 #------------------------------------------------------------------------------
-#--- global vars
+#--- global
 #------------------------------------------------------------------------------
 #%%
 
-baseUrl_wsa = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/'
+load_dotenv(r'..\.env')
 
-measURL_wsa = 'https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json?includeTimeseries=true&includeCurrentMeasurement=true'
+measURL_wsa = os.getenv('WSA_MEAS_URL')
 
 qry_things = (
     f"{config.endpoints['things']}"
@@ -53,17 +53,17 @@ with requests.Session() as session:
     # FROST-Server limits requests to 100 entries by default
     # as long as there is '@iot.nextLink' present in things, do another request 
     # and combine it with things
-    # while '@iot.nextLink' in things.keys():
+    while '@iot.nextLink' in things.keys():
         
-    #     nextLink = things['@iot.nextLink']
-    #     next_things = session.get(nextLink).json()
+        nextLink = things['@iot.nextLink']
+        next_things = session.get(nextLink).json()
 
-    #     things['value'] += next_things['value']
+        things['value'] += next_things['value']
 
-    #     if '@iot.nextLink' in next_things.keys():
-    #         things['@iot.nextLink'] = next_things['@iot.nextLink']
-    #     else:
-    #         things.pop('@iot.nextLink')
+        if '@iot.nextLink' in next_things.keys():
+            things['@iot.nextLink'] = next_things['@iot.nextLink']
+        else:
+            things.pop('@iot.nextLink')
 
     curr_measurments = session.get(measURL_wsa)
         
@@ -82,12 +82,6 @@ with requests.Session() as session:
         # @TODO: add filter/check to get the correct datastream if there is more than one.
         datastream = thing['Datastreams'][0]['@iot.selfLink']
 
-        # datastream_res = session.get(f'{datastream}').json()
-        # # get last phenomenonTime in Datastream
-        # if 'phenomenonTime' in datastream_res.keys():
-        #     lastEntryTime = datastream_res['phenomenonTime'].split('/')[1]
-        # else:
-        #     lastEntryTime = None
         if not df_meas[df_meas['uuid'] == uuid].empty:
             meas_dict = {
                 'phenomenonTime': df_meas[df_meas['uuid'] == uuid]['phenomenonTime'].iat[0],
@@ -95,15 +89,5 @@ with requests.Session() as session:
             }
 
             session.post(f'{datastream}/Observations', json=meas_dict)
-        
-            # df.rename(columns={'timestamp': 'phenomenonTime', 'value': 'result'}, inplace=True)
-
-            # if lastEntryTime:
-            #     df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
-            # else:
-            #     df_to_post = df[-5:]
-            
-            # r = post_observations(session, datastream, df_to_post)
-            # print(r)
 
 # %%

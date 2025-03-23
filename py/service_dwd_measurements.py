@@ -1,30 +1,25 @@
 
 #%%
-import csv
-import json
-import pytz
+import os
+from dotenv import load_dotenv
 import requests
-from pathlib import Path
 import pandas as pd
 from datetime import datetime, timezone
-from frost import config
+import csv
+import pytz
 import zipfile
 import io
-import os
-import time
-
+from frost import config
 
 ###############  DOWNLOAD of the .txt files from the DWD-Server ##################
-
-
 #%%
 
-base_url = "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/recent/"
-output_dir = r'C:\Users\User\Desktop\stundendaten'
+load_dotenv(r'..\.env')
 
+base_url = os.getenv('DWD_STATIONS_URL')
+output_dir = os.getenv('TEMP')
 
 ## Get the staions for which we want to download data
-
 #%%
 
 qry_ids = (

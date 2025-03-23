@@ -15,7 +15,7 @@ import frost.func
 import frost.models
 import pandas as pd
 
-load_dotenv
+load_dotenv(r'..\.env')
 
 dwd_stations_url = os.getenv('DWD_STATIONS_URL')
 # %%
@@ -91,9 +91,6 @@ try:
                     print(f'Update thing: {station.name} (ID: {thing_id})')
                     # Update...
                     res_thing = frost.func.update_thing(s, thing_id, station.to_json())
-                    # get url of updated thing from response header
-                    thing_url = res_thing.headers.get('Location')
-                    print('Update thing: ', res_thing.status_code, res_thing.text, thing_url)
                     # Update Location
                     if location:
                         location.link_thing(thing_id)
@@ -117,7 +114,7 @@ try:
 
                     if r.status_code == 201:
                         # Get thing URL from response header
-                        thing_url = r.headers.get('Location')
+                        thing_url = r.headers.get('Location').replace('http://frost-server:8080', 'http://localhost:8080')
                         # extract thing id from url
                         thing_id = thing_url.split('/')[-1].split('(')[-1][:-1]
                         

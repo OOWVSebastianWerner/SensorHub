@@ -19,11 +19,6 @@ with DAG(
     catchup=False
 ) as surfacewater_dag:
     
-    def check_frost_server():
-        server_check = requests.get(config.baseURL)
-        if server_check.status_code != 200:
-            raise requests.exceptions.ConnectionError
-        
     def post_observations(session, datastream, data):
         responses = []
         for _, row in data.iterrows():
@@ -94,12 +89,6 @@ with DAG(
                     }
                     session.post(f'{datastream}/Observations', json=meas_dict)
     
-    task_check_server = PythonOperator(
-        task_id = 'task_check_server',
-        python_callable=check_frost_server,
-        dag=surfacewater_dag
-    )
-
     # task: load_things
     task_get_things = PythonOperator(
         task_id = 'task_get_things',
@@ -112,4 +101,4 @@ with DAG(
         dag=surfacewater_dag
     )
 
-    task_check_server >> task_get_things >> task_get_waterlevels
+    task_get_things >> task_get_waterlevels

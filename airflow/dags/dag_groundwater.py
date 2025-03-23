@@ -59,9 +59,8 @@ with DAG(
                     things['@iot.nextLink'] = next_things['@iot.nextLink']
                 else:
                     things.pop('@iot.nextLink')
-        # xcom einbauen
+       
         task_instance.xcom_push(key='things', value=things)
-        #return things
     
     def load_water_levels(task_instance):
         PAT_ID = 536
@@ -73,7 +72,7 @@ with DAG(
             for thing in things['value']:
                 id_ = thing['@iot.id']
                 foreign_id = thing['properties']['foreign_id']
-                mbp = thing['properties']['MS_MBP_mNHN']
+                # mbp = thing['properties']['MS_MBP_mNHN']
                 datastream = thing['Datastreams'][0]['@iot.selfLink']
 
                 # get last phenomenonTime in Datastream
@@ -82,8 +81,6 @@ with DAG(
                     lastEntryTime = datastream_res['phenomenonTime'].split('/')[1]
                 else:
                     lastEntryTime = None
-
-                # print(f"Processing Thing ID: {id_}, Start: {datetime.now()}, Import: {lastEntryTime}, Datastream: {datastream}")
 
                 url = f'https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/station/{foreign_id}/datenspuren/parameter/{PAT_ID}/tage/{tage}?key={Variable.get('nlwkn_api_key')}' 
                 
@@ -104,8 +101,6 @@ with DAG(
                     df.rename(columns={'DatumUTC': 'phenomenonTime', 'Wert': 'result'}, inplace=True)
                     df = df.drop(['Datum', 'Grundwasserstandsklasse'], axis=1)
                     df['phenomenonTime'] = df['phenomenonTime'].apply(lambda x: x.isoformat())
-                    df['result'] = df['result'].apply(lambda x: mbp - x)
-                    df['result'] = df['result'].round(2)
 
                     if lastEntryTime:
                         df_to_post = df[df['phenomenonTime'] > lastEntryTime][-5:]
