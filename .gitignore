@@ -1,5 +1,7 @@
 *tmp*
 data/
 __pycache__/
-logs/
+dag_id=*
+dag_processor_manager/
+scheduler/
 .venv/

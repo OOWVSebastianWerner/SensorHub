@@ -1,0 +1,1 @@
+Here you can store custom configurations for airflow.

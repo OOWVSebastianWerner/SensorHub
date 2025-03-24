@@ -1,0 +1,1 @@
+folder for storing raw files from airflow dags.

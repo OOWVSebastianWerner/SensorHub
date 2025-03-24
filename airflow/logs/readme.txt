@@ -1,0 +1,1 @@
+folder used by airflow for storing logs
